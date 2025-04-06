@@ -3,7 +3,7 @@ import AVFoundation
 import SwiftData
 import EventKit // Importar EventKit para acceso al calendario
 
-// Estructura para decodificar la respuesta JSON del análisis
+// Structure to decode the JSON analysis response
 struct AnalysisResult: Codable {
     let summary: String
     let events: [Event]?
@@ -40,7 +40,7 @@ class CalendarManager {
                 DispatchQueue.main.async {
                     completion(granted)
                     if let error = error {
-                        print("❌ Error al solicitar acceso al calendario: \(error)")
+                        print("❌ Error requesting access to calendar: \(error)")
                     }
                 }
             }
@@ -49,7 +49,7 @@ class CalendarManager {
                 DispatchQueue.main.async {
                     completion(granted)
                     if let error = error {
-                        print("❌ Error al solicitar acceso al calendario: \(error)")
+                        print("❌ Error requesting access to calendar: \(error)")
                     }
                 }
             }
@@ -63,7 +63,7 @@ class CalendarManager {
                 DispatchQueue.main.async {
                     completion(granted)
                     if let error = error {
-                        print("❌ Error al solicitar acceso a recordatorios: \(error)")
+                        print("❌ Error requesting access to reminders: \(error)")
                     }
                 }
             }
@@ -72,7 +72,7 @@ class CalendarManager {
                 DispatchQueue.main.async {
                     completion(granted)
                     if let error = error {
-                        print("❌ Error al solicitar acceso a recordatorios: \(error)")
+                        print("❌ Error requesting access to reminders: \(error)")
                     }
                 }
             }
@@ -115,135 +115,135 @@ class CalendarManager {
         }
     }
     
-    // Añadir recordatorio a la app de Recordatorios
+    // Add reminder to the Reminders app
     func addReminderToApp(title: String, dateString: String, notes: String? = nil, completion: @escaping (Bool, Error?, String) -> Void) {
-        // Crear un formateador de fecha para interpretar la cadena
+        // Create a date formatter to interpret the string
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "es_ES")
         
-        // Intentar diferentes formatos si el primero falla
+        // Try different formats if the first fails
         var reminderDate: Date?
-        var formatoUsado = ""
+        var formatUsed = ""
         let possibleFormats = ["dd/MM/yyyy HH:mm", "dd/MM/yyyy", "d 'de' MMMM 'de' yyyy", "d 'de' MMMM", "MMMM d, yyyy", "yyyy-MM-dd", "yyyy/MM/dd"]
         
-        // Intentar con formatos específicos
+        // Try with specific formats
         for format in possibleFormats {
             dateFormatter.dateFormat = format
             if let date = dateFormatter.date(from: dateString) {
                 reminderDate = date
-                formatoUsado = format
-                print("✅ Fecha de recordatorio interpretada correctamente usando formato: \(format)")
-                print("📅 Fecha interpretada: \(date)")
+                formatUsed = format
+                print("✅ Reminder date correctly interpreted using format: \(format)")
+                print("📅 Interpreted date: \(date)")
                 break
             }
         }
         
-        // Si no funcionó con formatos específicos, usar mañana como predeterminado
+        // If it didn't work with specific formats, use tomorrow as default
         if reminderDate == nil {
-            // Crear una fecha por defecto para mañana
+            // Create a default date for tomorrow
             let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
             reminderDate = tomorrow
-            print("⚠️ No se pudo interpretar la fecha: '\(dateString)'. Usando fecha predeterminada: mañana")
-            formatoUsado = "fecha predeterminada (mañana)"
+            print("⚠️ Could not interpret the date: '\(dateString)'. Using default date: tomorrow")
+            formatUsed = "default date (tomorrow)"
         }
         
         guard let dueDate = reminderDate else {
-            completion(false, NSError(domain: "ReminderError", code: 1, userInfo: [NSLocalizedDescriptionKey: "No se pudo interpretar la fecha"]), "")
+            completion(false, NSError(domain: "ReminderError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not interpret the date"]), "")
             return
         }
         
-        // Crear recordatorio
+        // Create reminder
         let reminder = EKReminder(eventStore: eventStore)
         reminder.title = title
-        reminder.notes = notes ?? "Recordatorio añadido desde Hera"
+        reminder.notes = notes ?? "Reminder added from Hera"
         
-        // Establecer fecha de recordatorio (solo fecha, ignorando hora)
+        // Set reminder date (date only, ignoring time)
         let calendar = Calendar.current
         var dateComponents = calendar.dateComponents([.year, .month, .day], from: dueDate)
-        // Establecer hora fija para todos los recordatorios (9:00 AM)
+        // Set fixed time for all reminders (9:00 AM)
         dateComponents.hour = 9
         dateComponents.minute = 0
         
         reminder.dueDateComponents = dateComponents
-        reminder.priority = 5 // Prioridad media
+        reminder.priority = 5 // Medium priority
         
-        // Usar la lista de recordatorios predeterminada
+        // Use the default reminders list
         if let defaultList = eventStore.defaultCalendarForNewReminders() {
             reminder.calendar = defaultList
-            print("📋 Usando lista de recordatorios: \(defaultList.title)")
+            print("📋 Using reminders list: \(defaultList.title)")
         }
         
         do {
             try eventStore.save(reminder, commit: true)
             
-            // Formatear la fecha para mostrarla al usuario
+            // Format the date to show to the user
             dateFormatter.dateFormat = "dd/MM/yyyy"
-            let fechaFormateada = dateFormatter.string(from: dueDate)
+            let formattedDate = dateFormatter.string(from: dueDate)
             
-            let listaRecordatorios = "Lista: \(reminder.calendar?.title ?? "Predeterminada")"
+            let remindersList = "List: \(reminder.calendar?.title ?? "Default")"
             
-            completion(true, nil, "Fecha del recordatorio: \(fechaFormateada)\n\(listaRecordatorios)")
+            completion(true, nil, "Reminder date: \(formattedDate)\n\(remindersList)")
         } catch let error {
-            print("❌ Error al guardar recordatorio: \(error.localizedDescription)")
+            print("❌ Error saving reminder: \(error.localizedDescription)")
             completion(false, error, "")
         }
     }
     
-    // Añadir evento al calendario
+    // Add event to calendar
     func addEventToCalendar(title: String, dateString: String, timeString: String? = nil, notes: String? = nil, completion: @escaping (Bool, Error?, String) -> Void) {
-        // Crear un formateador de fecha para interpretar la cadena
+        // Create a date formatter to interpret the string
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "es_ES")
         
-        // Intentar diferentes formatos si el primero falla
+        // Try different formats if the first fails
         var eventDate: Date?
-        var formatoUsado = ""
+        var formatUsed = ""
         let possibleFormats = ["dd/MM/yyyy HH:mm", "dd/MM/yyyy", "d 'de' MMMM 'de' yyyy", "d 'de' MMMM", "MMMM d, yyyy", "yyyy-MM-dd", "yyyy/MM/dd"]
         
-        // Intentar con formatos específicos
+        // Try with specific formats
         for format in possibleFormats {
             dateFormatter.dateFormat = format
             if let date = dateFormatter.date(from: dateString) {
                 eventDate = date
-                formatoUsado = format
-                print("✅ Fecha interpretada correctamente usando formato: \(format)")
-                print("📅 Fecha interpretada: \(date)")
+                formatUsed = format
+                print("✅ Date correctly interpreted using format: \(format)")
+                print("📅 Interpreted date: \(date)")
                 break
             }
         }
         
-        // Si no funcionó con formatos específicos, intentar con DateParser de NaturalLanguage 
+        // If it didn't work with specific formats, try with DateParser from NaturalLanguage
         if eventDate == nil {
-            // Crear una fecha por defecto para mañana
+            // Create a default date for tomorrow
             let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
             eventDate = tomorrow
-            print("⚠️ No se pudo interpretar la fecha: '\(dateString)'. Usando fecha predeterminada: mañana")
-            formatoUsado = "fecha predeterminada (mañana)"
+            print("⚠️ Could not interpret the date: '\(dateString)'. Using default date: tomorrow")
+            formatUsed = "default date (tomorrow)"
         }
         
         guard let startDate = eventDate else {
-            completion(false, NSError(domain: "CalendarError", code: 1, userInfo: [NSLocalizedDescriptionKey: "No se pudo interpretar la fecha"]), "")
+            completion(false, NSError(domain: "CalendarError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not interpret the date"]), "")
             return
         }
         
-        // Crear evento
+        // Create event
         let event = EKEvent(eventStore: eventStore)
         event.title = title
         
-        // Determinar si es un evento de día completo o con hora específica
+        // Determine if it's an all-day event or with specific time
         let isAllDayEvent = timeString == nil || timeString?.isEmpty == true
         
         if isAllDayEvent {
-            // Configurar como evento de día completo
+            // Configure as all-day event
             event.isAllDay = true
             event.startDate = Calendar.current.startOfDay(for: startDate)
             event.endDate = Calendar.current.date(byAdding: .day, value: 1, to: event.startDate)
-            print("📅 Configurado como evento de día completo")
+            print("📅 Configured as all-day event")
         } else {
-            // Configurar evento con hora específica
+            // Configure event with specific time
             event.isAllDay = false
             
-            // Extraer la hora y minutos
+            // Extract hour and minutes
             let timeFormatter = DateFormatter()
             timeFormatter.dateFormat = "HH:mm"
             
@@ -251,66 +251,66 @@ class CalendarManager {
                 let calendar = Calendar.current
                 let timeComponents = calendar.dateComponents([.hour, .minute], from: timeDate)
                 
-                // Crear fecha con la hora específica
+                // Create date with specific time
                 var fullDateComponents = calendar.dateComponents([.year, .month, .day], from: startDate)
                 fullDateComponents.hour = timeComponents.hour
                 fullDateComponents.minute = timeComponents.minute
                 
                 if let fullDate = calendar.date(from: fullDateComponents) {
                     event.startDate = fullDate
-                    // Evento de una hora por defecto
+                    // One hour event by default
                     event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: fullDate)
-                    print("🕒 Hora configurada: \(timeString!)")
+                    print("🕒 Time set: \(timeString!)")
                 } else {
-                    // Fallback si hay algún problema con la hora
+                    // Fallback if there's a problem with the time
                     event.startDate = startDate
                     event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: startDate)
-                    print("⚠️ No se pudo configurar la hora específica, usando hora predeterminada")
+                    print("⚠️ Could not set specific time, using default time")
                 }
             } else {
-                // Fallback si no se puede interpretar la hora
+                // Fallback if time can't be interpreted
                 event.startDate = startDate
                 event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: startDate)
-                print("⚠️ No se pudo interpretar la hora: '\(timeString!)', usando hora predeterminada")
+                print("⚠️ Could not interpret time: '\(timeString!)', using default time")
             }
         }
         
-        event.notes = notes ?? "Evento añadido desde Hera"
+        event.notes = notes ?? "Event added from Hera"
         
-        // Intentar usar el calendario primario del usuario si está disponible
+        // Try to use the user's primary calendar if available
         if let primaryCalendar = eventStore.calendars(for: .event).first(where: { $0.allowsContentModifications }) {
             event.calendar = primaryCalendar
-            print("📆 Usando calendario: \(primaryCalendar.title)")
+            print("📆 Using calendar: \(primaryCalendar.title)")
         } else {
             event.calendar = eventStore.defaultCalendarForNewEvents
-            print("📆 Usando calendario por defecto")
+            print("📆 Using default calendar")
         }
         
-        // Añadir una alarma 30 minutos antes para hacer más visible el evento (solo para eventos no de día completo)
+        // Add an alarm 30 minutes before to make the event more visible (only for non-all-day events)
         if !isAllDayEvent {
-            let alarm = EKAlarm(relativeOffset: -30 * 60) // 30 minutos antes
+            let alarm = EKAlarm(relativeOffset: -30 * 60) // 30 minutes before
             event.addAlarm(alarm)
         }
         
         do {
             try eventStore.save(event, span: .thisEvent)
             
-            // Formatear la fecha para mostrarla al usuario
+            // Format the date to show to the user
             dateFormatter.dateFormat = "dd/MM/yyyy"
-            let fechaFormateada = dateFormatter.string(from: startDate)
+            let formattedDate = dateFormatter.string(from: startDate)
             
-            var detallesCalendario = "Calendario: \(event.calendar?.title ?? "Predeterminado")"
+            var calendarDetails = "Calendar: \(event.calendar?.title ?? "Default")"
             
-            // Agregar información sobre el tipo de evento
+            // Add information about the event type
             if isAllDayEvent {
-                detallesCalendario += "\nTipo: Evento de día completo"
+                calendarDetails += "\nType: All-day event"
             } else {
-                detallesCalendario += "\nTipo: Evento con hora específica (\(timeString ?? "desconocida"))"
+                calendarDetails += "\nType: Specific time event (\(timeString ?? "unknown"))"
             }
             
-            completion(true, nil, "Fecha del evento: \(fechaFormateada)\n\(detallesCalendario)")
+            completion(true, nil, "Event date: \(formattedDate)\n\(calendarDetails)")
         } catch let error {
-            print("❌ Error al guardar evento: \(error.localizedDescription)")
+            print("❌ Error saving event: \(error.localizedDescription)")
             completion(false, error, "")
         }
     }
@@ -424,7 +424,7 @@ struct PlaybackView: View {
                     Color.black.opacity(0.3)
                         .ignoresSafeArea()
                     
-                    ProgressView("Cargando audio...")
+                    ProgressView("Loading audio...")
                         .padding()
                         .background(Color(UIColor.systemBackground))
                         .cornerRadius(10)
@@ -435,8 +435,8 @@ struct PlaybackView: View {
                         .ignoresSafeArea()
                     
                     VStack {
-                        ProgressView("Transcribiendo...")
-                        Text("Este proceso puede tardar unos segundos")
+                        ProgressView("Transcribing...")
+                        Text("This process may take a few seconds")
                             .font(.caption)
                             .padding(.top, 8)
                     }
@@ -450,8 +450,8 @@ struct PlaybackView: View {
                         .ignoresSafeArea()
                     
                     VStack {
-                        ProgressView("Analizando transcripción...")
-                        Text("Este proceso puede tardar unos segundos")
+                        ProgressView("Analyzing transcription...")
+                        Text("This process may take a few seconds")
                             .font(.caption)
                             .padding(.top, 8)
                     }
@@ -462,91 +462,87 @@ struct PlaybackView: View {
             }
         )
         .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle("Reproducción")
+        .navigationTitle("Playback")
         .alert(isPresented: Binding<Bool>(
             get: { audioError != nil },
             set: { if !$0 { audioError = nil } }
         )) {
             Alert(
                 title: Text("Error"),
-                message: Text(audioError ?? "Error desconocido"),
+                message: Text(audioError ?? "Unknown error"),
                 dismissButton: .default(Text("OK"))
             )
         }
-        .confirmationDialog("Opciones", isPresented: $showOptions) {
-            Button("Renombrar") {
+        .confirmationDialog("Options", isPresented: $showOptions) {
+            Button("Rename") {
                 newRecordingName = recording.title
                 showRenameDialog = true
             }
             
-            Button("Compartir") {
+            Button("Share") {
                 shareMemo()
             }
             
-            Button("Eliminar", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 // Función para eliminar
             }
             
-            Button("Cancelar", role: .cancel) {
+            Button("Cancel", role: .cancel) {
                 showOptions = false
             }
         }
-        .alert("Renombrar grabación", isPresented: $showRenameDialog) {
-            TextField("Nombre", text: $newRecordingName)
+        .alert("Rename recording", isPresented: $showRenameDialog) {
+            TextField("Name", text: $newRecordingName)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-            Button("Cancelar", role: .cancel) { }
-            Button("Guardar") {
+            Button("Cancel", role: .cancel) { }
+            Button("Save") {
                 if !newRecordingName.isEmpty {
                     renameRecording(newName: newRecordingName)
                 }
             }
             .disabled(newRecordingName.isEmpty)
         } message: {
-            Text("Introduce un nuevo nombre para esta grabación")
+            Text("Enter a new name for this recording")
         }
         // Alerta después de añadir un evento al calendario
-        .alert(isPresented: $showCalendarAlert) {
-            Alert(
-                title: Text("Calendario"),
-                message: Text(calendarAlertMessage),
-                dismissButton: .default(Text("OK"))
-            )
+        .alert("Event Added", isPresented: $showCalendarAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("The event has been added to your calendar.")
         }
         // Alerta para solicitar permisos de calendario
-        .alert("Acceso al Calendario", isPresented: $showCalendarPermissionAlert) {
-            Button("Cancelar", role: .cancel) { }
-            Button("Configurar") {
+        .alert("Calendar Access Required", isPresented: $showCalendarPermissionAlert) {
+            Button("Go to Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Esta app necesita acceso a tu calendario para añadir eventos. Por favor, concede permisos en la configuración.")
+            Text("This app needs access to your calendar to add events. Please grant permission in settings.")
         }
         // Alerta después de añadir un recordatorio
-        .alert(isPresented: $showReminderAlert) {
-            Alert(
-                title: Text("Recordatorio"),
-                message: Text(reminderAlertMessage),
-                dismissButton: .default(Text("OK"))
-            )
+        .alert("Reminder Added", isPresented: $showReminderAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("The reminder has been added to your list.")
         }
         // Alerta para solicitar permisos de recordatorios
-        .alert("Acceso a Recordatorios", isPresented: $showReminderPermissionAlert) {
-            Button("Cancelar", role: .cancel) { }
-            Button("Configurar") {
+        .alert("Reminders Access Required", isPresented: $showReminderPermissionAlert) {
+            Button("Go to Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Esta app necesita acceso a tus recordatorios para añadir tareas. Por favor, concede permisos en la configuración.")
+            Text("This app needs access to your reminders to add tasks. Please grant permission in settings.")
         }
         // Alerta después de exportar a Notas
         .alert(isPresented: $showNotesAlert) {
             Alert(
-                title: Text("Notas"),
+                title: Text("Notes"),
                 message: Text(notesAlertMessage),
                 dismissButton: .default(Text("OK"))
             )
@@ -555,11 +551,11 @@ struct PlaybackView: View {
             // Registrar tiempo de aparición para detectar ciclos
             viewAppearTime = Date()
             
-            print("🟢 PlaybackView apareció: \(recording.id.uuidString) (instancia: \(instanceNumber))")
+            print("🟢 PlaybackView appeared: \(recording.id.uuidString) (instance: \(instanceNumber))")
             
             if !viewAppeared {
                 viewAppeared = true
-                print("🔄 Vista aparecida por primera vez")
+                print("🔄 View appeared for the first time")
                 
                 // Si hay análisis disponible, intentar decodificarlo
                 if let analysisText = recording.analysis {
@@ -574,7 +570,7 @@ struct PlaybackView: View {
         .onDisappear {
             let timeVisible = Date().timeIntervalSince(viewAppearTime)
             
-            print("🔴 PlaybackView desapareció: \(recording.id.uuidString) (instancia: \(instanceNumber), tiempo visible: \(String(format: "%.2f", timeVisible))s)")
+            print("🔴 PlaybackView disappeared: \(recording.id.uuidString) (instance: \(instanceNumber), time visible: \(String(format: "%.2f", timeVisible))s)")
             
             // Invalidar el timer
             if timer != nil {
@@ -606,7 +602,7 @@ struct PlaybackView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "wand.and.stars")
                             .font(.system(size: 16, weight: .medium))
-                        Text("Transcribir")
+                        Text("Transcribe")
                             .font(.headline)
                     }
                     .padding(.vertical, 12)
@@ -636,7 +632,7 @@ struct PlaybackView: View {
                 }) {
                     HStack {
                         Image(systemName: "key")
-                        Text("Configurar API Key")
+                        Text("Configure API Key")
                     }
                     .font(.footnote)
                     .padding(.vertical, 5)
@@ -662,7 +658,7 @@ struct PlaybackView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "wand.and.stars")
                             .font(.system(size: 16, weight: .medium))
-                        Text("Analizar Transcripción")
+                        Text("Analyze Transcription")
                             .font(.headline)
                     }
                     .padding(.vertical, 12)
@@ -684,7 +680,7 @@ struct PlaybackView: View {
                 
                 // Mostrar la transcripción si no hay análisis
                 if let transcription = recording.transcription {
-                    Text("Transcripción:")
+                    Text("Transcription:")
                         .font(.headline)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
@@ -703,7 +699,7 @@ struct PlaybackView: View {
                         HStack {
                             Image(systemName: "text.bubble")
                                 .foregroundColor(.blue)
-                            Text("Resumen")
+                            Text("Summary")
                                 .font(.headline)
                         }
                         
@@ -723,7 +719,7 @@ struct PlaybackView: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "note.text")
                                         .font(.footnote)
-                                    Text("Exportar")
+                                    Text("Export")
                                         .font(.caption)
                                 }
                                 .padding(6)
@@ -742,7 +738,7 @@ struct PlaybackView: View {
                             HStack {
                                 Image(systemName: "calendar")
                                     .foregroundColor(.gray)
-                                Text("Eventos")
+                                Text("Events")
                                     .font(.headline)
                                 Spacer()
                                 if let events = analysisData.events {
@@ -784,7 +780,7 @@ struct PlaybackView: View {
                                         HStack(spacing: 4) {
                                             Image(systemName: "plus.circle.fill")
                                                 .font(.subheadline)
-                                            Text("Añadir")
+                                            Text("Add")
                                                 .font(.subheadline)
                                         }
                                         .padding(.vertical, 6)
@@ -799,23 +795,21 @@ struct PlaybackView: View {
                                 .cornerRadius(8)
                             }
                         } else if showEvents {
-                            Text("No hay eventos en esta grabación")
+                            Text("No events found in this recording")
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .padding()
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .background(Color(UIColor.secondarySystemBackground).opacity(0.3))
-                                .cornerRadius(8)
                         }
                     }
                     .padding(.vertical, 5)
                     
-                    // Sección de recordatorios (siempre visible, incluso si está vacía)
+                    // Sección de recordatorios
                     VStack {
                         Button(action: { showReminders.toggle() }) {
                             HStack {
-                                Image(systemName: "bell")
-                                    .foregroundColor(.gray)
-                                Text("Recordatorios")
+                                Image(systemName: "list.bullet.clipboard")
+                                    .foregroundColor(.orange)
+                                Text("Reminders")
                                     .font(.headline)
                                 Spacer()
                                 if let reminders = analysisData.reminders {
@@ -823,14 +817,14 @@ struct PlaybackView: View {
                                         .font(.footnote)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 2)
-                                        .background(Color.gray.opacity(0.2))
+                                        .background(Color.orange.opacity(0.2))
                                         .cornerRadius(10)
                                 } else {
                                     Text("0")
                                         .font(.footnote)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 2)
-                                        .background(Color.gray.opacity(0.2))
+                                        .background(Color.orange.opacity(0.2))
                                         .cornerRadius(10)
                                 }
                                 Image(systemName: showReminders ? "chevron.up" : "chevron.down")
@@ -844,52 +838,47 @@ struct PlaybackView: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(reminder.name)
                                             .fontWeight(.medium)
+                                        
                                         Text(reminder.date)
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
                                     Spacer()
                                     
-                                    // Botón para añadir a Recordatorios
+                                    // Button to add to Reminders
                                     Button(action: {
-                                        addReminderToApp(title: reminder.name, date: reminder.date)
+                                        // We get the date value safely
+                                        addTaskToReminders(title: reminder.name, date: reminder.date)
                                     }) {
                                         HStack(spacing: 4) {
                                             Image(systemName: "plus.circle.fill")
                                                 .font(.subheadline)
-                                            Text("Añadir")
+                                            Text("Add")
                                                 .font(.subheadline)
                                         }
-                                        .padding(.vertical, 6)
-                                        .padding(.horizontal, 10)
-                                        .background(Color("AccentColor").opacity(0.1))
-                                        .foregroundColor(AppColors.adaptiveText)
-                                        .cornerRadius(15)
                                     }
                                 }
-                                .padding()
-                                .background(Color(UIColor.secondarySystemBackground).opacity(0.7))
+                                .padding(.vertical, 8)
+                                .padding(.horizontal)
+                                .background(Color(UIColor.secondarySystemBackground))
                                 .cornerRadius(8)
                             }
                         } else if showReminders {
-                            Text("No hay recordatorios en esta grabación")
+                            Text("No reminders found in this recording")
                                 .foregroundColor(.secondary)
                                 .padding()
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .background(Color(UIColor.secondarySystemBackground).opacity(0.3))
-                                .cornerRadius(8)
                         }
                     }
                     .padding(.vertical, 5)
                     
-                    // Ver transcripción original
+                    // View original transcription
                     if let transcription = recording.transcription {
                         Button(action: {
                             isShowingTranscription.toggle()
                         }) {
                             HStack {
                                 Image(systemName: isShowingTranscription ? "chevron.up" : "chevron.down")
-                                Text(isShowingTranscription ? "Ocultar transcripción original" : "Ver transcripción original")
+                                Text(isShowingTranscription ? "Hide original transcription" : "View original transcription")
                                     .font(.caption)
                             }
                             .padding(.vertical, 10)
@@ -903,19 +892,19 @@ struct PlaybackView: View {
                                 .background(Color(UIColor.tertiarySystemBackground))
                                 .cornerRadius(8)
                         }
+                    } else {
+                        // Show raw analysis if it couldn't be decoded
+                        Text("Analysis:")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                        Text(recording.analysis ?? "")
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(Color(UIColor.secondarySystemBackground))
+                            .cornerRadius(8)
                     }
-                } else {
-                    // Mostrar el análisis en crudo si no se pudo decodificar
-                    Text("Análisis:")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                    Text(recording.analysis ?? "")
-                        .font(.body)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(8)
                 }
             }
         }
@@ -985,77 +974,77 @@ struct PlaybackView: View {
         .padding(.horizontal)
     }
     
-    // MARK: - Métodos de audio
+    // MARK: - Audio methods
     
-    // Reproducir/pausar audio
+    // Play/pause audio
     private func togglePlayPause() {
         if audioManager.isPlaying {
-            print("⏸️ Pausando reproducción")
+            print("⏸️ Pausing playback")
             audioManager.pausePlayback()
             stopPlaybackAndTimer()
         } else {
-            print("▶️ Iniciando reproducción manualmente")
+            print("▶️ Starting playback manually")
             forceLoadAndPlayAudio()
         }
     }
     
-    // Forzar carga y reproducción (para botón play)
+    // Force load and playback (for play button)
     private func forceLoadAndPlayAudio() {
         guard !isLoading else { return }
         
         guard let fileURL = recording.fileURL else {
-            audioError = "No hay URL de audio para esta grabación"
+            audioError = "No audio URL available for this recording"
             return
         }
         
-        // Verificar existencia del archivo
+        // Check if file exists
         if !FileManager.default.fileExists(atPath: fileURL.path) {
-            audioError = "El archivo de audio no existe"
-            print("⚠️ El archivo de audio no existe en: \(fileURL.path)")
+            audioError = "The audio file doesn't exist"
+            print("⚠️ Audio file doesn't exist at: \(fileURL.path)")
             return
         }
         
-        print("🎬 Forzando carga de audio: \(fileURL.lastPathComponent)")
+        print("🎬 Forcing audio load: \(fileURL.lastPathComponent)")
         isLoading = true
         
-        // Si ya hay un player reproduciendo, usar ese
+        // If there's already a player playing, use that one
         if audioManager.isPlaying && audioManager.player?.url == fileURL {
-            print("🔄 Ya está reproduciendo el archivo correcto, continuando")
+            print("🔄 Already playing the correct file, continuing")
             isLoading = false
             
-            // Asegurar que el timer está funcionando
+            // Ensure the timer is running
             if timer == nil {
                 setupProgressTimer()
             }
             return
         }
         
-        // Detener cualquier reproducción anterior
+        // Stop any previous playback
         audioManager.stopPlayback()
         
-        // Cargar el audio nuevo - SIEMPRE reproducir después de cargar
+        // Load the new audio - ALWAYS play after loading
         audioManager.prepareToPlay(url: fileURL) { success, audioDuration in
-            // Usar un pequeño retraso para asegurar que la vista está estable
+            // Use a small delay to ensure the view is stable
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.isLoading = false
                 
                 if success {
                     self.duration = audioDuration
-                    print("✅ Audio preparado - Duración: \(audioDuration)s")
+                    print("✅ Audio prepared - Duration: \(audioDuration)s")
                     
-                    // SIEMPRE reproducir después de una acción manual del usuario
-                    print("▶️ Reproducción real iniciada")
+                    // ALWAYS play after a manual user action
+                    print("▶️ Real playback started")
                     self.audioManager.startPlayback(url: fileURL)
                     
-                    // Usar un pequeño delay mayor para evitar conflictos de estado
+                    // Use a slightly longer delay to avoid state conflicts
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                         if self.audioManager.isPlaying && self.audioManager.player != nil {
                             self.setupProgressTimer()
                         }
                     }
                 } else {
-                    self.audioError = "No se pudo cargar el audio"
-                    print("❌ Error al cargar el audio desde: \(fileURL.path)")
+                    self.audioError = "Could not load audio"
+                    print("❌ Error loading audio from: \(fileURL.path)")
                 }
             }
         }
@@ -1065,18 +1054,18 @@ struct PlaybackView: View {
     private func setupProgressTimer() {
         // Verificar que el player existe antes de configurar el timer
         guard let player = self.audioManager.player else {
-            print("⚠️ No se puede configurar el timer - Player no disponible")
+            print("⚠️ Cannot set up timer - Player not available")
             return
         }
         
         // Cancelar cualquier timer existente antes de crear uno nuevo
         stopPlaybackAndTimer()
         
-        print("⏱️ Configurando timer de progreso")
+        print("⏱️ Setting up progress timer")
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             // Verificar nuevamente que el player sigue existiendo
             guard let player = self.audioManager.player else { 
-                print("⚠️ Timer activo pero sin player disponible - deteniendo timer")
+                print("⚠️ Timer active but player not available - stopping timer")
                 DispatchQueue.main.async {
                     self.stopPlaybackAndTimer()
                 }
@@ -1095,7 +1084,7 @@ struct PlaybackView: View {
                 
                 // Verificar si llegamos al final
                 if newTime >= self.duration - 0.1 {
-                    print("🏁 Reproducción completada")
+                    print("🏁 Playback completed")
                     DispatchQueue.main.async {
                         self.currentTime = 0
                         self.playbackProgress = 0
@@ -1118,7 +1107,7 @@ struct PlaybackView: View {
         if timer != nil {
             timer?.invalidate()
             timer = nil
-            print("⏱️ Temporizador detenido")
+            print("⏱️ Timer stopped")
         }
     }
     
@@ -1185,22 +1174,22 @@ struct PlaybackView: View {
         // Verificar que la API key no esté vacía después de eliminar espacios
         guard let fileURL = recording.fileURL, !openAIKey.isEmpty else {
             isTranscribing = false
-            audioError = "No hay URL de audio o no hay API key configurada"
-            print("⚠️ API Key vacía o inválida: '\(openAIKey)'")
+            audioError = "No audio URL available or API key not configured"
+            print("⚠️ Empty or invalid API Key for processing: '\(openAIKey)'")
             return
         }
         
         // Verificar que el archivo existe
         if !FileManager.default.fileExists(atPath: fileURL.path) {
             isTranscribing = false
-            audioError = "El archivo de audio no existe en: \(fileURL.path)"
+            audioError = "The audio file doesn't exist"
             return
         }
         
         isTranscribing = true
         
         // Verificar la grabación actual
-        print("🔍 Iniciando transcripción para grabación: ID: \(recording.id)")
+        print("🔍 Starting transcription for recording: ID: \(recording.id)")
         
         let service = OpenAIService()
         service.transcribeAudio(fileURL: fileURL, apiKey: openAIKey) { result in
@@ -1210,7 +1199,7 @@ struct PlaybackView: View {
                 switch result {
                 case .success(let transcription):
                     if !transcription.isEmpty {
-                        print("✅ Transcripción completada: \(transcription.prefix(50))...")
+                        print("✅ Transcription completed: \(transcription.prefix(50))...")
                         
                         // Guardar en archivo primero
                         self.saveTranscriptionToFile(transcription, for: fileURL)
@@ -1221,7 +1210,7 @@ struct PlaybackView: View {
                         // Llamar al callback después de la transcripción exitosa
                         completion()
                     } else {
-                        self.audioError = "La transcripción está vacía"
+                        self.audioError = "The transcription is empty"
                     }
                     
                 case .failure(let error):
@@ -1239,9 +1228,9 @@ struct PlaybackView: View {
         
         do {
             try text.write(to: textFileURL, atomically: true, encoding: .utf8)
-            print("✅ Transcripción guardada en archivo: \(textFileURL.path)")
+            print("✅ Transcription saved to file: \(textFileURL.path)")
         } catch {
-            print("❌ Error al guardar transcripción en archivo: \(error)")
+            print("❌ Error saving transcription to file: \(error)")
         }
     }
     
@@ -1261,9 +1250,9 @@ struct PlaybackView: View {
                 
                 // Actualizar también la instancia actual
                 self.recording.transcription = transcription
-                print("✅ Transcripción guardada correctamente en SwiftData")
+                print("✅ Transcription successfully saved in SwiftData")
             } else {
-                print("⚠️ No se encontró la grabación en SwiftData: \(self.recording.id)")
+                print("⚠️ Could not find the recording in SwiftData: \(self.recording.id)")
                 // Intentar guardar en la instancia actual como respaldo
                 self.recording.transcription = transcription
                 try? self.modelContext.save()
@@ -1282,14 +1271,14 @@ struct PlaybackView: View {
               let transcription = recording.transcription,
               !transcription.isEmpty,
               !openAIKey.isEmpty else {
-            audioError = "No hay transcripción disponible o no hay API key configurada"
-            print("⚠️ API Key vacía o inválida para procesamiento: '\(openAIKey)'")
+            audioError = "No transcription available or API key not configured"
+            print("⚠️ Empty or invalid API Key for processing: '\(openAIKey)'")
             return
         }
         
         isProcessing = true
         
-        print("🔍 Iniciando procesamiento para grabación: ID: \(recording.id)")
+        print("🔍 Starting processing for recording: ID: \(recording.id)")
         
         let service = OpenAIService()
         service.processTranscription(transcription: transcription, recordingId: recording.id, apiKey: openAIKey) { result in
@@ -1299,7 +1288,7 @@ struct PlaybackView: View {
                 switch result {
                 case .success(let analysis):
                     if !analysis.isEmpty {
-                        print("✅ Procesamiento completado")
+                        print("✅ Analysis successfully saved in SwiftData")
                         
                         // Buscar la grabación original en SwiftData
                         let fetchDescriptor = FetchDescriptor<AudioRecording>()
@@ -1315,7 +1304,7 @@ struct PlaybackView: View {
                                 
                                 // Actualizar también la instancia actual
                                 self.recording.analysis = analysis
-                                print("✅ Análisis guardado correctamente en SwiftData")
+                                print("✅ Analysis successfully saved in SwiftData")
                                 
                                 // Decodificar el análisis para mostrarlo
                                 self.decodeAnalysisJSON(analysis)
@@ -1375,7 +1364,7 @@ struct PlaybackView: View {
     
     // Decodificar el análisis JSON
     private func decodeAnalysisJSON(_ jsonString: String) {
-        print("Intentando decodificar JSON de análisis")
+        print("Trying to decode analysis JSON")
         
         // Limpiar el string de JSON eliminando marcas de código
         var cleanedJsonString = jsonString
@@ -1531,12 +1520,12 @@ struct PlaybackView: View {
         // Comprobar si tenemos permisos para acceder al calendario
         if CalendarManager.shared.checkCalendarAuthorizationStatus() {
             // Tenemos permisos, añadir evento
-            CalendarManager.shared.addEventToCalendar(title: title, dateString: date, timeString: timeString, notes: "Evento añadido desde Hera") { success, error, detalles in
+            CalendarManager.shared.addEventToCalendar(title: title, dateString: date, timeString: timeString, notes: "Event added from Hera") { success, error, details in
                 if success {
-                    calendarAlertMessage = "Evento '\(title)' añadido correctamente al calendario.\n\n\(detalles)"
+                    calendarAlertMessage = "Event '\(title)' successfully added to calendar.\n\n\(details)"
                     showCalendarAlert = true
                 } else {
-                    calendarAlertMessage = "No se pudo añadir el evento al calendario: \(error?.localizedDescription ?? "Error desconocido")"
+                    calendarAlertMessage = "Could not add event to calendar: \(error?.localizedDescription ?? "Unknown error")"
                     showCalendarAlert = true
                 }
             }
@@ -1545,12 +1534,12 @@ struct PlaybackView: View {
             CalendarManager.shared.requestAccess { granted in
                 if granted {
                     // Permisos concedidos, añadir evento
-                    CalendarManager.shared.addEventToCalendar(title: title, dateString: date, timeString: timeString, notes: "Evento añadido desde Hera") { success, error, detalles in
+                    CalendarManager.shared.addEventToCalendar(title: title, dateString: date, timeString: timeString, notes: "Event added from Hera") { success, error, details in
                         if success {
-                            calendarAlertMessage = "Evento '\(title)' añadido correctamente al calendario.\n\n\(detalles)"
+                            calendarAlertMessage = "Event '\(title)' successfully added to calendar.\n\n\(details)"
                             showCalendarAlert = true
                         } else {
-                            calendarAlertMessage = "No se pudo añadir el evento al calendario: \(error?.localizedDescription ?? "Error desconocido")"
+                            calendarAlertMessage = "Could not add event to calendar: \(error?.localizedDescription ?? "Unknown error")"
                             showCalendarAlert = true
                         }
                     }
@@ -1563,16 +1552,16 @@ struct PlaybackView: View {
     }
     
     // Función para añadir recordatorio a la app de Recordatorios
-    private func addReminderToApp(title: String, date: String) {
+    private func addTaskToReminders(title: String, date: String) {
         // Comprobar si tenemos permisos para acceder a recordatorios
         if CalendarManager.shared.checkRemindersAuthorizationStatus() {
             // Tenemos permisos, añadir recordatorio
-            CalendarManager.shared.addReminderToApp(title: title, dateString: date, notes: "Recordatorio añadido desde Hera") { success, error, detalles in
+            CalendarManager.shared.addReminderToApp(title: title, dateString: date, notes: "Reminder added from Hera") { success, error, details in
                 if success {
-                    reminderAlertMessage = "Recordatorio '\(title)' añadido correctamente.\n\n\(detalles)"
+                    reminderAlertMessage = "Reminder '\(title)' added successfully.\n\n\(details)"
                     showReminderAlert = true
                 } else {
-                    reminderAlertMessage = "No se pudo añadir el recordatorio: \(error?.localizedDescription ?? "Error desconocido")"
+                    reminderAlertMessage = "Could not add reminder: \(error?.localizedDescription ?? "Unknown error")"
                     showReminderAlert = true
                 }
             }
@@ -1581,12 +1570,12 @@ struct PlaybackView: View {
             CalendarManager.shared.requestRemindersAccess { granted in
                 if granted {
                     // Permisos concedidos, añadir recordatorio
-                    CalendarManager.shared.addReminderToApp(title: title, dateString: date, notes: "Recordatorio añadido desde Hera") { success, error, detalles in
+                    CalendarManager.shared.addReminderToApp(title: title, dateString: date, notes: "Reminder added from Hera") { success, error, details in
                         if success {
-                            reminderAlertMessage = "Recordatorio '\(title)' añadido correctamente.\n\n\(detalles)"
+                            reminderAlertMessage = "Reminder '\(title)' added successfully.\n\n\(details)"
                             showReminderAlert = true
                         } else {
-                            reminderAlertMessage = "No se pudo añadir el recordatorio: \(error?.localizedDescription ?? "Error desconocido")"
+                            reminderAlertMessage = "Could not add reminder: \(error?.localizedDescription ?? "Unknown error")"
                             showReminderAlert = true
                         }
                     }
@@ -1606,15 +1595,15 @@ struct PlaybackView: View {
         shareText += "\(recording.title)\n\n"
         
         if let transcription = recording.transcription {
-            shareText += "Transcripción:\n\(transcription)\n\n"
+            shareText += "Transcription:\n\(transcription)\n\n"
         }
         
         if let analysis = recording.analysis, 
            let analysisData = try? JSONDecoder().decode(AnalysisResult.self, from: Data(analysis.utf8)) {
-            shareText += "Resumen:\n\(analysisData.summary)\n\n"
+            shareText += "Summary:\n\(analysisData.summary)\n\n"
             
             if let events = analysisData.events, !events.isEmpty {
-                shareText += "Eventos:\n"
+                shareText += "Events:\n"
                 for event in events {
                     shareText += "- \(event.name) (\(event.date))\n"
                 }
@@ -1622,7 +1611,7 @@ struct PlaybackView: View {
             }
             
             if let reminders = analysisData.reminders, !reminders.isEmpty {
-                shareText += "Recordatorios:\n"
+                shareText += "Reminders:\n"
                 for reminder in reminders {
                     shareText += "- \(reminder.name) (\(reminder.date))\n"
                 }
@@ -1642,7 +1631,7 @@ struct PlaybackView: View {
     // Función para exportar a la app Notas del iPhone
     private func exportToNotes() {
         guard let analysisData = analysisData else {
-            notesAlertMessage = "No hay análisis disponible para exportar"
+            notesAlertMessage = "No analysis available to export"
             showNotesAlert = true
             return
         }
@@ -1658,25 +1647,25 @@ struct PlaybackView: View {
         
         // Añadir sección de eventos si hay alguno
         if let events = analysisData.events, !events.isEmpty {
-            noteBody += "\n\n## Eventos\n"
+            noteBody += "\n\n## Events\n"
             for event in events {
-                let timeInfo = event.time != nil ? " a las \(event.time!)" : ""
+                let timeInfo = event.time != nil ? " at \(event.time!)" : ""
                 noteBody += "- \(event.name) - \(event.date)\(timeInfo)\n"
             }
         }
         
         // Añadir sección de recordatorios si hay alguno
         if let reminders = analysisData.reminders, !reminders.isEmpty {
-            noteBody += "\n\n## Recordatorios\n"
+            noteBody += "\n\n## Reminders\n"
             for reminder in reminders {
-                let timeInfo = reminder.time != nil ? " a las \(reminder.time!)" : ""
+                let timeInfo = reminder.time != nil ? " at \(reminder.time!)" : ""
                 noteBody += "- \(reminder.name) - \(reminder.date)\(timeInfo)\n"
             }
         }
         
         // Si está disponible, añadir la transcripción al final
         if let transcription = recording.transcription {
-            noteBody += "\n\n## Transcripción original\n\n"
+            noteBody += "\n\n## Original Transcription\n\n"
             noteBody += transcription
         }
         
@@ -1684,9 +1673,9 @@ struct PlaybackView: View {
         createNote(title: noteTitle, content: noteBody) { success, errorMessage in
             DispatchQueue.main.async {
                 if success {
-                    self.notesAlertMessage = "La nota '\(noteTitle)' ha sido creada correctamente en la aplicación Notas."
+                    self.notesAlertMessage = "Note '\(noteTitle)' has been successfully created in the Notes app."
                 } else {
-                    self.notesAlertMessage = "Error al crear la nota: \(errorMessage)"
+                    self.notesAlertMessage = "Error creating note: \(errorMessage)"
                 }
                 self.showNotesAlert = true
             }
@@ -1715,7 +1704,7 @@ struct PlaybackView: View {
                     if success {
                         completion(true, "")
                     } else {
-                        completion(false, "No se pudo abrir la app Notas")
+                        completion(false, "Could not open Notes app")
                     }
                 }
             } else {
@@ -1728,14 +1717,14 @@ struct PlaybackView: View {
                 if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                    let rootViewController = windowScene.windows.first?.rootViewController {
                     rootViewController.present(activityVC, animated: true) {
-                        completion(true, "Usando el menú compartir como alternativa")
+                        completion(true, "Using share menu as alternative")
                     }
                 } else {
-                    completion(false, "No se pudo acceder al controlador de vista para compartir")
+                    completion(false, "Could not access view controller for sharing")
                 }
             }
         } else {
-            completion(false, "URL inválida")
+            completion(false, "Invalid URL")
         }
     }
 }
@@ -1753,7 +1742,7 @@ extension AudioManager {
             // Usar DispatchQueue para actualizar estado
             DispatchQueue.main.async {
                 self.isPlaying = false
-                print("🛑 Reproducción pausada")
+                print("🛑 Playback paused")
             }
         }
     }
@@ -1761,7 +1750,7 @@ extension AudioManager {
     func resumePlayback() {
         // Este método reanuda la reproducción si ya está preparado
         if let player = player {
-            print("▶️ Reproducción reanudada")
+            print("▶️ Playback resumed")
             player.play()
             // Usar DispatchQueue para actualizar estado
             DispatchQueue.main.async {

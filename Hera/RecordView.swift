@@ -91,17 +91,17 @@ struct RecordView: View {
             checkMicrophonePermission()
             #endif
         }
-        .alert("Permiso de micrófono requerido", isPresented: $showingPermissionAlert) {
-            Button("Ir a Configuración") {
+        .alert("Microphone Permission Required", isPresented: $showingPermissionAlert) {
+            Button("Go to Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
-            Button("Cancelar", role: .cancel) {
+            Button("Cancel", role: .cancel) {
                 dismiss()
             }
         } message: {
-            Text("Para grabar audio, debes permitir el acceso al micrófono en la configuración.")
+            Text("To record audio, you must allow access to the microphone in the settings.")
         }
         .tint(AppColors.adaptiveTint) // Color de acento adaptativo
     }

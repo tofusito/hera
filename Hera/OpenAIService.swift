@@ -195,7 +195,7 @@ class OpenAIService {
             do {
                 try FileManager.default.createDirectory(at: recordingDirectory, withIntermediateDirectories: true)
             } catch {
-                print("Error al crear directorio para archivos de procesamiento: \(error)")
+                print("Error creating directory for processing files: \(error)")
                 return
             }
         }
@@ -205,7 +205,7 @@ class OpenAIService {
         do {
             try transcription.write(to: transcriptionURL, atomically: true, encoding: .utf8)
         } catch {
-            print("Error al guardar la transcripción: \(error)")
+            print("Error saving transcription: \(error)")
         }
         
         // Guardar la respuesta cruda de la API
@@ -213,7 +213,7 @@ class OpenAIService {
         do {
             try responseData.write(to: responseURL)
         } catch {
-            print("Error al guardar la respuesta de la API: \(error)")
+            print("Error saving API response: \(error)")
         }
     }
 }

@@ -260,8 +260,15 @@ struct ContentView: View {
         VStack(spacing: 20) {
             Spacer()
             Image(systemName: "waveform").font(.system(size: 50)).foregroundColor(AppColors.adaptiveText)
-            Text("No hay grabaciones").font(.title2).fontWeight(.semibold).foregroundColor(AppColors.adaptiveText)
-            Text("Toca el botón de micrófono para comenzar a grabar").font(.subheadline).foregroundColor(.secondary).multilineTextAlignment(.center).padding(.horizontal)
+            Text("No recordings")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(AppColors.adaptiveText)
+            Text("Tap the microphone button to start recording")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
             Spacer()
         }
     }
@@ -643,7 +650,7 @@ struct ContentView: View {
                 dateFormatter.dateStyle = .medium
                 dateFormatter.timeStyle = .short
                 dateFormatter.locale = Locale(identifier: "es_ES")
-                let title = "Importado el \(dateFormatter.string(from: Date()))"
+                let title = "Imported at \(dateFormatter.string(from: Date()))"
                 
                 // Crear y guardar el nuevo objeto AudioRecording
                 DispatchQueue.main.async {
@@ -667,6 +674,21 @@ struct ContentView: View {
             print("Error al importar el archivo de audio: \(error)")
         }
     }
+    
+    // Función para formatear fecha relativa
+    private func formatRelativeDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return "Today"
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .medium
+            dateFormatter.timeStyle = .none
+            return dateFormatter.string(from: date)
+        }
+    }
 }
 
 // Nueva celda para DisplayableRecording
@@ -682,7 +704,7 @@ struct DisplayableRecordingCell: View {
                     .foregroundColor(AppColors.adaptiveText)
                 
                 HStack {
-                    Text(formatDate(recording.timestamp))
+                    Text(formatRelativeDate(recording.timestamp))
                         .font(.caption)
                         .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .secondary)
                     Text("•").font(.caption).foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .secondary)
@@ -703,18 +725,17 @@ struct DisplayableRecordingCell: View {
     }
 
     // Funciones de formato
-    private func formatDate(_ date: Date) -> String {
+    private func formatRelativeDate(_ date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
-            return "Hoy"
+            return "Today"
         } else if calendar.isDateInYesterday(date) {
-            return "Ayer"
+            return "Yesterday"
         } else {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .none
-            formatter.locale = Locale(identifier: "es_ES") // Opcional: formato español
-            return formatter.string(from: date)
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .medium
+            dateFormatter.timeStyle = .none
+            return dateFormatter.string(from: date)
         }
     }
     private func formatDuration(_ duration: TimeInterval) -> String {
@@ -749,7 +770,7 @@ struct ImportOptionsView: View {
                                 .foregroundColor(AppColors.adaptiveText)
                                 .frame(width: 30)
                             
-                            Text("Importar desde Archivos")
+                            Text("Import from Files")
                                 .foregroundColor(.primary)
                         }
                     }
@@ -759,11 +780,11 @@ struct ImportOptionsView: View {
                 .background(Color.clear)
                 .listStyle(PlainListStyle())
             }
-            .navigationTitle("Importar Audio")
+            .navigationTitle("Import Audio")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cerrar") {
+                    Button("Close") {
                         dismiss()
                     }
                     .foregroundColor(AppColors.adaptiveText)
@@ -807,29 +828,27 @@ struct APISettingsView: View {
                 colorScheme == .dark ? Color("ListBackground") : Color(UIColor.systemGroupedBackground)
                 
                 Form {
-                    Section(header: Text("OpenAI")) {
+                    Section(header: Text("OpenAI API Key")) {
                         SecureField("API Key", text: $openAIKey)
+                            .autocorrectionDisabled(true)
+                            .textInputAutocapitalization(.never)
+                            .font(.system(.body, design: .monospaced))
                     }
-                    .listRowBackground(colorScheme == .dark ? Color("CardBackground") : Color(UIColor.systemBackground))
                     
-                    Section(header: Text("Google Gemini")) {
-                        SecureField("API Key", text: $geminiKey)
+                    // Explicación
+                    Section(header: Text("Information")) {
+                        Text("An API key is required for transcription and analysis features. You can get one from [openai.com](https://platform.openai.com/account/api-keys)")
+                            .font(.footnote)
                     }
-                    .listRowBackground(colorScheme == .dark ? Color("CardBackground") : Color(UIColor.systemBackground))
-                    
-                    Section(header: Text("Anthropic")) {
-                        SecureField("API Key", text: $anthropicKey)
-                    }
-                    .listRowBackground(colorScheme == .dark ? Color("CardBackground") : Color(UIColor.systemBackground))
                 }
                 .scrollIndicators(.hidden)
                 .background(Color.clear)
             }
-            .navigationTitle("Configuración de API")
+            .navigationTitle("API Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Guardar") {
+                    Button("Save") {
                         // Las claves se guardan automáticamente con @AppStorage
                         dismiss()
                     }
@@ -837,7 +856,7 @@ struct APISettingsView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cerrar") {
+                    Button("Close") {
                         // Restaurar valores originales antes de cerrar
                         openAIKey = originalOpenAIKey
                         geminiKey = originalGeminiKey
@@ -870,7 +889,7 @@ struct NotesListView: View {
                 colorScheme == .dark ? Color("ListBackground") : Color(UIColor.systemGroupedBackground)
                 
                 List {
-                    Text("Aquí se mostrarán las notas guardadas")
+                    Text("Here you will see your saved notes")
                         .foregroundColor(.gray)
                         .listRowBackground(colorScheme == .dark ? Color("ListBackground") : Color(UIColor.systemBackground))
                 }
@@ -878,11 +897,11 @@ struct NotesListView: View {
                 .background(Color.clear)
                 .listStyle(PlainListStyle())
             }
-            .navigationTitle("Mis Notas")
+            .navigationTitle("My Notes")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cerrar") {
+                    Button("Close") {
                         dismiss()
                     }
                     .foregroundColor(AppColors.adaptiveText)

@@ -87,7 +87,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
             let success = audioRecorder?.record() ?? false
             
             if !success {
-                print("Error al iniciar la grabación")
+                print("Error starting recording")
                 return
             }
             
@@ -139,7 +139,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
             }
             
         } catch {
-            print("No se pudo iniciar la grabación: \(error)")
+            print("Could not start recording: \(error)")
             isRecording = false
             audioLevel = 0.0
         }
@@ -336,65 +336,60 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
     }
     
     // Función para crear estructura de carpetas para grabaciones
-    func createRecordingDirectory(for id: UUID) -> URL? {
-        // Obtenemos la carpeta de documentos
-        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            print("Error accediendo al directorio de documentos")
+    func createRecordingDirectory(for recordingId: UUID) -> URL? {
+        guard let voiceMemosURL = getVoiceMemosDirectoryURL() else {
             return nil
         }
         
-        // Creamos una carpeta con el nombre de Hera para organizar todo
-        let appDirectory = documentsDirectory.appendingPathComponent("Hera", isDirectory: true)
+        let recordingDirectoryURL = voiceMemosURL.appendingPathComponent(recordingId.uuidString, isDirectory: true)
         
-        // Verificar que la carpeta existe
-        if !FileManager.default.fileExists(atPath: appDirectory.path) {
+        // Crear directorio específico para esta grabación con su UUID
+        if !FileManager.default.fileExists(atPath: recordingDirectoryURL.path) {
             do {
-                try FileManager.default.createDirectory(at: appDirectory, withIntermediateDirectories: true, attributes: nil)
+                try FileManager.default.createDirectory(at: recordingDirectoryURL, withIntermediateDirectories: true)
             } catch {
-                print("Error al crear directorio de grabaciones: \(error)")
+                print("Error creating directory for recording: \(error)")
                 return nil
             }
         }
         
-        // Creamos una carpeta específica para esta grabación usando su ID
-        let recordingDirectory = appDirectory.appendingPathComponent(id.uuidString, isDirectory: true)
-        
-        do {
-            // Crear carpeta principal de la app si no existe
-            if !FileManager.default.fileExists(atPath: appDirectory.path) {
-                try FileManager.default.createDirectory(at: appDirectory, withIntermediateDirectories: true)
-            }
-            
-            // Crear carpeta para esta grabación
-            if !FileManager.default.fileExists(atPath: recordingDirectory.path) {
-                try FileManager.default.createDirectory(at: recordingDirectory, withIntermediateDirectories: true)
-            }
-            
-            return recordingDirectory
-        } catch {
-            print("Error al crear directorio para grabación: \(error)")
-            return nil
-        }
+        return recordingDirectoryURL
     }
 
     // Método para obtener la URL del directorio donde se guardan las grabaciones
     func getVoiceMemosDirectoryURL() -> URL? {
-        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            return nil
-        }
-        
-        let appDirectory = documentsDirectory.appendingPathComponent("Hera", isDirectory: true)
+        // Directorio Documents
+        let documentsURL = getDocumentsDirectory()
+        let directoryURL = documentsURL.appendingPathComponent("VoiceRecordings", isDirectory: true)
         
         // Crear directorio si no existe
-        if !FileManager.default.fileExists(atPath: appDirectory.path) {
+        if !FileManager.default.fileExists(atPath: directoryURL.path) {
             do {
-                try FileManager.default.createDirectory(at: appDirectory, withIntermediateDirectories: true, attributes: nil)
+                try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
             } catch {
-                print("Error al crear directorio Hera: \(error)")
+                print("Error creating recordings directory: \(error)")
                 return nil
             }
         }
         
-        return appDirectory
+        return directoryURL
+    }
+    
+    // Crear directorio Hera para archivos de procesamiento
+    // Esta es una función auxiliar para uso interno
+    func getOrCreateHeraDirectory() -> URL? {
+        let documentsURL = getDocumentsDirectory()
+        let heraDirectoryURL = documentsURL.appendingPathComponent("Hera", isDirectory: true)
+        
+        if !FileManager.default.fileExists(atPath: heraDirectoryURL.path) {
+            do {
+                try FileManager.default.createDirectory(at: heraDirectoryURL, withIntermediateDirectories: true)
+            } catch {
+                print("Error creating Hera directory: \(error)")
+                return nil
+            }
+        }
+        
+        return heraDirectoryURL
     }
 } 
