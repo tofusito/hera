@@ -365,19 +365,30 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
     func getVoiceMemosDirectoryURL() -> URL? {
         // Directorio Documents
         let documentsURL = getDocumentsDirectory()
-        let directoryURL = documentsURL.appendingPathComponent("VoiceRecordings", isDirectory: true)
         
-        // Crear directorio si no existe
-        if !FileManager.default.fileExists(atPath: directoryURL.path) {
+        // Crear directorio Hera principal si no existe
+        let heraDirectoryURL = documentsURL.appendingPathComponent("Hera", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: heraDirectoryURL.path) {
             do {
-                try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+                try FileManager.default.createDirectory(at: heraDirectoryURL, withIntermediateDirectories: true)
             } catch {
-                print("Error creating recordings directory: \(error)")
+                print("Error creating Hera directory: \(error)")
                 return nil
             }
         }
         
-        return directoryURL
+        // Crear directorio VoiceNotes dentro de Hera
+        let voiceNotesURL = heraDirectoryURL.appendingPathComponent("VoiceNotes", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: voiceNotesURL.path) {
+            do {
+                try FileManager.default.createDirectory(at: voiceNotesURL, withIntermediateDirectories: true)
+            } catch {
+                print("Error creating VoiceNotes directory: \(error)")
+                return nil
+            }
+        }
+        
+        return voiceNotesURL
     }
     
     // Crear directorio Hera para archivos de procesamiento
@@ -407,26 +418,40 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
             return
         }
         
-        // Verificar/crear directorio principal de grabaciones
-        let voiceMemosURL = documentsDirectory.appendingPathComponent("VoiceRecordings", isDirectory: true)
+        // Verificar/crear directorio Hera principal
+        let heraDirectoryURL = documentsDirectory.appendingPathComponent("Hera", isDirectory: true)
         
-        if !FileManager.default.fileExists(atPath: voiceMemosURL.path) {
+        if !FileManager.default.fileExists(atPath: heraDirectoryURL.path) {
             do {
-                try FileManager.default.createDirectory(at: voiceMemosURL, withIntermediateDirectories: true)
-                print("✅ Creado directorio principal: \(voiceMemosURL.path)")
+                try FileManager.default.createDirectory(at: heraDirectoryURL, withIntermediateDirectories: true)
+                print("✅ Creado directorio principal Hera: \(heraDirectoryURL.path)")
             } catch {
-                print("❌ Error creando directorio principal: \(error)")
+                print("❌ Error creando directorio principal Hera: \(error)")
             }
         } else {
-            print("✓ Directorio principal existe: \(voiceMemosURL.path)")
+            print("✓ Directorio principal Hera existe: \(heraDirectoryURL.path)")
+        }
+        
+        // Verificar/crear directorio VoiceNotes dentro de Hera
+        let voiceNotesURL = heraDirectoryURL.appendingPathComponent("VoiceNotes", isDirectory: true)
+        
+        if !FileManager.default.fileExists(atPath: voiceNotesURL.path) {
+            do {
+                try FileManager.default.createDirectory(at: voiceNotesURL, withIntermediateDirectories: true)
+                print("✅ Creado directorio VoiceNotes: \(voiceNotesURL.path)")
+            } catch {
+                print("❌ Error creando directorio VoiceNotes: \(error)")
+            }
+        } else {
+            print("✓ Directorio VoiceNotes existe: \(voiceNotesURL.path)")
         }
         
         // Verificar permisos de escritura
-        if FileManager.default.isWritableFile(atPath: voiceMemosURL.path) {
-            print("✓ Directorio principal tiene permisos de escritura")
+        if FileManager.default.isWritableFile(atPath: voiceNotesURL.path) {
+            print("✓ Directorio VoiceNotes tiene permisos de escritura")
             
             // Crear un archivo temporal para probar
-            let testFile = voiceMemosURL.appendingPathComponent("test_write.txt")
+            let testFile = voiceNotesURL.appendingPathComponent("test_write.txt")
             do {
                 try "Test write".write(to: testFile, atomically: true, encoding: .utf8)
                 print("✓ Prueba de escritura exitosa")
@@ -437,7 +462,44 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
                 print("❌ Error en prueba de escritura: \(error)")
             }
         } else {
-            print("❌ Directorio principal no tiene permisos de escritura")
+            print("❌ Directorio VoiceNotes no tiene permisos de escritura")
+        }
+        
+        // Migrar archivos de la estructura antigua si existe
+        let oldVoiceRecordingsURL = documentsDirectory.appendingPathComponent("VoiceRecordings", isDirectory: true)
+        if FileManager.default.fileExists(atPath: oldVoiceRecordingsURL.path) {
+            print("🔄 Encontrado directorio antiguo VoiceRecordings, migrando archivos...")
+            
+            do {
+                let contents = try FileManager.default.contentsOfDirectory(at: oldVoiceRecordingsURL, includingPropertiesForKeys: nil)
+                
+                if contents.isEmpty {
+                    print("✓ Directorio antiguo vacío, eliminando...")
+                    try FileManager.default.removeItem(at: oldVoiceRecordingsURL)
+                } else {
+                    print("🔄 Migrando \(contents.count) elementos...")
+                    
+                    for itemURL in contents {
+                        let destURL = voiceNotesURL.appendingPathComponent(itemURL.lastPathComponent)
+                        
+                        if !FileManager.default.fileExists(atPath: destURL.path) {
+                            try FileManager.default.moveItem(at: itemURL, to: destURL)
+                            print("  ✓ Migrado: \(itemURL.lastPathComponent)")
+                        } else {
+                            print("  ⚠️ Ya existe en destino: \(itemURL.lastPathComponent)")
+                        }
+                    }
+                    
+                    // Verificar si ahora está vacío para eliminar
+                    let remainingContents = try FileManager.default.contentsOfDirectory(at: oldVoiceRecordingsURL, includingPropertiesForKeys: nil)
+                    if remainingContents.isEmpty {
+                        try FileManager.default.removeItem(at: oldVoiceRecordingsURL)
+                        print("✅ Directorio antiguo eliminado después de migración")
+                    }
+                }
+            } catch {
+                print("❌ Error durante la migración: \(error)")
+            }
         }
     }
     

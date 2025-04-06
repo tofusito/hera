@@ -188,16 +188,36 @@ class OpenAIService {
         }
         
         // Usar la misma estructura de directorios que AudioManager
-        let voiceMemosDirectory = documentsDirectory.appendingPathComponent("VoiceRecordings", isDirectory: true)
-        let recordingDirectory = voiceMemosDirectory.appendingPathComponent(recordingId.uuidString, isDirectory: true)
+        let heraDirectory = documentsDirectory.appendingPathComponent("Hera", isDirectory: true)
+        let voiceNotesDirectory = heraDirectory.appendingPathComponent("VoiceNotes", isDirectory: true)
+        let recordingDirectory = voiceNotesDirectory.appendingPathComponent(recordingId.uuidString, isDirectory: true)
         
-        // Crear directorio si no existe
+        // Verificar/crear directorios si no existen
+        if !FileManager.default.fileExists(atPath: heraDirectory.path) {
+            do {
+                try FileManager.default.createDirectory(at: heraDirectory, withIntermediateDirectories: true)
+            } catch {
+                print("❌ Error creating Hera directory: \(error)")
+                return
+            }
+        }
+        
+        if !FileManager.default.fileExists(atPath: voiceNotesDirectory.path) {
+            do {
+                try FileManager.default.createDirectory(at: voiceNotesDirectory, withIntermediateDirectories: true)
+            } catch {
+                print("❌ Error creating VoiceNotes directory: \(error)")
+                return
+            }
+        }
+        
+        // Crear directorio de grabación si no existe
         if !FileManager.default.fileExists(atPath: recordingDirectory.path) {
             do {
                 try FileManager.default.createDirectory(at: recordingDirectory, withIntermediateDirectories: true)
                 print("📁 Created directory for recording: \(recordingDirectory.path)")
             } catch {
-                print("❌ Error creating directory for processing files: \(error)")
+                print("❌ Error creating directory for recording: \(error)")
                 return
             }
         } else {
