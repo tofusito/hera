@@ -213,6 +213,30 @@ struct ContentView: View {
                 }
             }
             
+            // Botón flotante de importar
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button {
+                        showingImportSheet = true
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(colorScheme == .dark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.8))
+                                .frame(width: 56, height: 56)
+                                .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                            
+                            Image(systemName: "square.and.arrow.down")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(colorScheme == .dark ? Color(white: 0.9) : Color.white)
+                        }
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 120) // Espacio aumentado para que no quede tapado por la barra
+                }
+            }
+            
             // Barra inferior
             bottomBarView()
         }
@@ -222,19 +246,13 @@ struct ContentView: View {
     // MARK: - Componentes de UI
     @ViewBuilder
     private func titleBarView() -> some View {
-        HStack {
-            Text("Hera")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            Spacer()
-            Button {
-                showingImportSheet = true
-            } label: {
-                Image(systemName: "square.and.arrow.down")
-                    .font(.title2)
-                    .foregroundColor(AppColors.adaptiveText)
-            }.padding(.trailing)
-        }.padding(.leading)
+        VStack {
+            Image(systemName: "pawprint.fill")
+                .font(.system(size: 28))
+                .foregroundColor(colorScheme == .dark ? Color(white: 0.9) : Color(white: 0.2))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
     }
     
     @ViewBuilder
