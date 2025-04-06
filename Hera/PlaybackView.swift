@@ -369,6 +369,10 @@ struct PlaybackView: View {
     // Injección de datos
     @Bindable var recording: AudioRecording
     
+    @State private var showAllNotes: Bool = false
+    @State private var isShowingTooltip: Bool = false
+    @State private var buttonScale: CGFloat = 1.0
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // Contenido principal (área scrolleable)
@@ -416,6 +420,62 @@ struct PlaybackView: View {
                 }
                 .background(.regularMaterial)
                 .ignoresSafeArea(edges: .bottom)
+            }
+            
+            // Botón flotante para mostrar todas las notas
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showAllNotes = true
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue.gradient)
+                                .frame(width: 60, height: 60)
+                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                            
+                            Image(systemName: "note.text.badge.plus")
+                                .font(.system(size: 22, weight: .medium))
+                                .foregroundColor(.white)
+                        }
+                        .overlay(
+                            Text("View notes")
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color(UIColor.systemBackground).opacity(0.9))
+                                .cornerRadius(8)
+                                .offset(y: -45)
+                                .opacity(isShowingTooltip ? 1 : 0)
+                        )
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 100) // Para colocarlo por encima del reproductor
+                    .onHover { hovering in
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isShowingTooltip = hovering
+                        }
+                    }
+                    .onTapGesture {
+                        // Pequeña animación al pulsar
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            buttonScale = 0.9
+                        }
+                        
+                        // Volver al tamaño normal con un pequeño retraso
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                buttonScale = 1.0
+                            }
+                        }
+                        
+                        // Mostrar la vista de notas
+                        showAllNotes = true
+                    }
+                    .scaleEffect(buttonScale)
+                }
             }
         }
         .overlay(
@@ -577,6 +637,9 @@ struct PlaybackView: View {
                 timer?.invalidate()
                 timer = nil
             }
+        }
+        .sheet(isPresented: $showAllNotes) {
+            AnalyzedNotesListView()
         }
     }
     
@@ -1226,6 +1289,19 @@ struct PlaybackView: View {
         let folderURL = audioURL.deletingLastPathComponent()
         let textFileURL = folderURL.appendingPathComponent("transcription.txt")
         
+        print("📁 Saving transcription to directory: \(folderURL.path)")
+        
+        // Verificar que el directorio existe
+        if !FileManager.default.fileExists(atPath: folderURL.path) {
+            do {
+                try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
+                print("📁 Created directory for transcription: \(folderURL.path)")
+            } catch {
+                print("❌ Error creating directory for transcription: \(error)")
+                return
+            }
+        }
+        
         do {
             try text.write(to: textFileURL, atomically: true, encoding: .utf8)
             print("✅ Transcription saved to file: \(textFileURL.path)")
@@ -1842,6 +1918,294 @@ struct PlaybackBarsView: View {
         // Valores uniformes para el estado pausado
         scales = [0.8, 0.8, 0.8, 0.8]
     }
+}
+
+// MARK: - Vistas para la lista de notas
+struct AnalyzedNotesListView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @State private var analyzedNotes: [AnalyzedNote] = []
+    @State private var selectedNote: AnalyzedNote?
+    @State private var showDetail: Bool = false
+    @State private var searchText: String = ""
+    @State private var sortOrder: SortOrder = .newest
+    @State private var showSortOptions: Bool = false
+    
+    // Propiedades calculadas para filtrar y ordenar notas
+    private var filteredNotes: [AnalyzedNote] {
+        if searchText.isEmpty {
+            return sortedNotes
+        } else {
+            return sortedNotes.filter { 
+                $0.title.localizedCaseInsensitiveContains(searchText) || 
+                $0.recordingTitle.localizedCaseInsensitiveContains(searchText) ||
+                $0.summary.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+    
+    private var sortedNotes: [AnalyzedNote] {
+        switch sortOrder {
+        case .newest:
+            return analyzedNotes.sorted { $0.created > $1.created }
+        case .oldest:
+            return analyzedNotes.sorted { $0.created < $1.created }
+        case .alphabetical:
+            return analyzedNotes.sorted { $0.title < $1.title }
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                if analyzedNotes.isEmpty {
+                    ContentUnavailableView(
+                        "No analyzed notes",
+                        systemImage: "note.text",
+                        description: Text("Notes will appear here after analyzing your recordings.")
+                    )
+                } else if filteredNotes.isEmpty {
+                    ContentUnavailableView.search
+                } else {
+                    List {
+                        ForEach(filteredNotes) { note in
+                            Button(action: {
+                                selectedNote = note
+                                showDetail = true
+                            }) {
+                                HStack(spacing: 15) {
+                                    // Icono de la nota con círculo
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.blue.opacity(0.1))
+                                            .frame(width: 44, height: 44)
+                                        
+                                        Image(systemName: "doc.text")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(.blue)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(note.title)
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                        Text(note.recordingTitle)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
+                                    
+                                    // Fecha e icono de flecha
+                                    VStack(alignment: .trailing, spacing: 4) {
+                                        Text(formatDate(note.created))
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                                .padding(.vertical, 8)
+                            }
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color(UIColor.secondarySystemBackground).opacity(0.5))
+                                    .padding(
+                                        EdgeInsets(
+                                            top: 4,
+                                            leading: 8,
+                                            bottom: 4,
+                                            trailing: 8
+                                        )
+                                    )
+                            )
+                            .transition(.asymmetric(
+                                insertion: .scale.combined(with: .opacity),
+                                removal: .opacity
+                            ))
+                        }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("Analyzed Notes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        showSortOptions = true
+                    }) {
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
+                    }
+                    .confirmationDialog("Sort Notes", isPresented: $showSortOptions) {
+                        Button("Newest First") { sortOrder = .newest }
+                        Button("Oldest First") { sortOrder = .oldest }
+                        Button("Alphabetical") { sortOrder = .alphabetical }
+                        Button("Cancel", role: .cancel) { }
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Text("Done")
+                    }
+                }
+            }
+            .searchable(text: $searchText, prompt: "Search notes")
+            .onAppear {
+                loadAnalyzedNotes()
+            }
+            .sheet(isPresented: $showDetail) {
+                if let note = selectedNote {
+                    AnalyzedNoteDetailView(note: note)
+                }
+            }
+        }
+    }
+    
+    private func loadAnalyzedNotes() {
+        let fetchDescriptor = FetchDescriptor<AudioRecording>()
+        
+        do {
+            let recordings = try modelContext.fetch(fetchDescriptor)
+            var notes: [AnalyzedNote] = []
+            
+            for recording in recordings {
+                if let analysis = recording.analysis,
+                   let analysisData = try? JSONDecoder().decode(AnalysisResult.self, from: Data(analysis.utf8)) {
+                    let title = analysisData.suggestedTitle ?? "Untitled Note"
+                    let summary = analysisData.summary
+                    let note = AnalyzedNote(
+                        id: recording.id,
+                        title: title,
+                        summary: summary,
+                        recordingTitle: recording.title,
+                        created: recording.timestamp
+                    )
+                    notes.append(note)
+                }
+            }
+            
+            // Usar animación para cargar las notas
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                analyzedNotes = notes
+            }
+            print("✅ Loaded \(notes.count) analyzed notes")
+        } catch {
+            print("❌ Error loading analyzed notes: \(error)")
+        }
+    }
+}
+
+struct AnalyzedNoteDetailView: View {
+    let note: AnalyzedNote
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Info header
+                    HStack {
+                        Image(systemName: "calendar")
+                            .foregroundColor(.secondary)
+                        Text("Created on \(formatDate(note.created, includeTime: true))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal)
+                    
+                    // Summary content
+                    Text(note.summary)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(colorScheme == .dark ? 
+                                      Color(UIColor.secondarySystemBackground) : 
+                                      Color(UIColor.secondarySystemBackground))
+                        )
+                        .padding(.horizontal)
+                    
+                    // Recording info
+                    HStack {
+                        Image(systemName: "waveform")
+                            .foregroundColor(.secondary)
+                        Text("From recording: \(note.recordingTitle)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                }
+                .padding(.vertical)
+            }
+            .navigationTitle(note.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Text("Close")
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        shareNote()
+                    }) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+            }
+        }
+    }
+    
+    private func shareNote() {
+        let content = "\(note.title)\n\n\(note.summary)"
+        let activityVC = UIActivityViewController(activityItems: [content], applicationActivities: nil)
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootViewController = windowScene.windows.first?.rootViewController {
+            rootViewController.present(activityVC, animated: true)
+        }
+    }
+}
+
+// Enumeración para las opciones de ordenación
+enum SortOrder {
+    case newest, oldest, alphabetical
+}
+
+// Modelo para las notas analizadas
+struct AnalyzedNote: Identifiable {
+    let id: UUID
+    let title: String
+    let summary: String
+    let recordingTitle: String
+    let created: Date
+}
+
+// Función para formatear fechas
+private func formatDate(_ date: Date, includeTime: Bool = false) -> String {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    
+    if includeTime {
+        formatter.timeStyle = .short
+    } else {
+        formatter.timeStyle = .none
+    }
+    
+    return formatter.string(from: date)
 }
 
 #Preview {

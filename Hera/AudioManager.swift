@@ -19,6 +19,11 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
         cleanupTimers()
     }
     
+    override init() {
+        super.init()
+        verifyAndRepairDirectoryStructure()
+    }
+    
     private func cleanupTimers() {
         // Método dedicado para limpiar temporizadores
         if let timer = self.timer {
@@ -391,5 +396,136 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
         }
         
         return heraDirectoryURL
+    }
+    
+    // Verificar y reparar estructura de directorios
+    func verifyAndRepairDirectoryStructure() {
+        print("📂 Verificando estructura de directorios...")
+        
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("❌ No se pudo acceder al directorio de documentos")
+            return
+        }
+        
+        // Verificar/crear directorio principal de grabaciones
+        let voiceMemosURL = documentsDirectory.appendingPathComponent("VoiceRecordings", isDirectory: true)
+        
+        if !FileManager.default.fileExists(atPath: voiceMemosURL.path) {
+            do {
+                try FileManager.default.createDirectory(at: voiceMemosURL, withIntermediateDirectories: true)
+                print("✅ Creado directorio principal: \(voiceMemosURL.path)")
+            } catch {
+                print("❌ Error creando directorio principal: \(error)")
+            }
+        } else {
+            print("✓ Directorio principal existe: \(voiceMemosURL.path)")
+        }
+        
+        // Verificar permisos de escritura
+        if FileManager.default.isWritableFile(atPath: voiceMemosURL.path) {
+            print("✓ Directorio principal tiene permisos de escritura")
+            
+            // Crear un archivo temporal para probar
+            let testFile = voiceMemosURL.appendingPathComponent("test_write.txt")
+            do {
+                try "Test write".write(to: testFile, atomically: true, encoding: .utf8)
+                print("✓ Prueba de escritura exitosa")
+                
+                // Eliminar archivo temporal
+                try FileManager.default.removeItem(at: testFile)
+            } catch {
+                print("❌ Error en prueba de escritura: \(error)")
+            }
+        } else {
+            print("❌ Directorio principal no tiene permisos de escritura")
+        }
+    }
+    
+    // Método público para listar y verificar las grabaciones
+    func listAndVerifyRecordings() {
+        print("📊 Verificando grabaciones existentes...")
+        
+        guard let voiceMemosURL = getVoiceMemosDirectoryURL() else {
+            print("❌ No se pudo acceder al directorio de grabaciones")
+            return
+        }
+        
+        do {
+            // Obtener todos los elementos en el directorio principal
+            let contents = try FileManager.default.contentsOfDirectory(at: voiceMemosURL, includingPropertiesForKeys: nil)
+            
+            print("📁 Encontradas \(contents.count) carpetas de grabación.")
+            
+            // Verificar cada carpeta de grabación
+            for folderURL in contents {
+                if folderURL.hasDirectoryPath {
+                    let folderName = folderURL.lastPathComponent
+                    print("  📂 Carpeta: \(folderName)")
+                    
+                    // Listar contenidos de la carpeta
+                    do {
+                        let folderContents = try FileManager.default.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
+                        print("    📄 Contiene \(folderContents.count) archivos:")
+                        
+                        // Verificar cada archivo
+                        for fileURL in folderContents {
+                            let fileName = fileURL.lastPathComponent
+                            print("      - \(fileName) (\(getSizeString(for: fileURL)))")
+                        }
+                        
+                        // Verificar archivo de audio
+                        let audioURL = folderURL.appendingPathComponent("audio.m4a")
+                        if FileManager.default.fileExists(atPath: audioURL.path) {
+                            print("    ✅ Archivo de audio existe")
+                        } else {
+                            print("    ❌ Archivo de audio NO existe")
+                        }
+                        
+                        // Verificar transcripción
+                        let transcriptionURL = folderURL.appendingPathComponent("transcription.txt")
+                        if FileManager.default.fileExists(atPath: transcriptionURL.path) {
+                            print("    ✅ Archivo de transcripción existe")
+                        } else {
+                            print("    ⚠️ Archivo de transcripción NO existe")
+                        }
+                        
+                        // Verificar análisis
+                        let analysisURL = folderURL.appendingPathComponent("analysis.json")
+                        if FileManager.default.fileExists(atPath: analysisURL.path) {
+                            print("    ✅ Archivo de análisis existe")
+                        } else {
+                            print("    ⚠️ Archivo de análisis NO existe")
+                        }
+                    } catch {
+                        print("    ❌ Error al listar contenidos: \(error)")
+                    }
+                }
+            }
+        } catch {
+            print("❌ Error al listar grabaciones: \(error)")
+        }
+    }
+    
+    // Obtener tamaño legible de un archivo
+    private func getSizeString(for fileURL: URL) -> String {
+        do {
+            let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+            if let size = attributes[.size] as? NSNumber {
+                let sizeBytes = size.int64Value
+                
+                if sizeBytes < 1024 {
+                    return "\(sizeBytes) bytes"
+                } else if sizeBytes < 1024 * 1024 {
+                    let sizeKB = Double(sizeBytes) / 1024.0
+                    return String(format: "%.1f KB", sizeKB)
+                } else {
+                    let sizeMB = Double(sizeBytes) / (1024.0 * 1024.0)
+                    return String(format: "%.2f MB", sizeMB)
+                }
+            }
+        } catch {
+            // Silent error
+        }
+        return "tamaño desconocido"
     }
 } 

@@ -187,33 +187,39 @@ class OpenAIService {
             return
         }
         
-        let voiceMemosDirectory = documentsDirectory.appendingPathComponent("Hera", isDirectory: true)
+        // Usar la misma estructura de directorios que AudioManager
+        let voiceMemosDirectory = documentsDirectory.appendingPathComponent("VoiceRecordings", isDirectory: true)
         let recordingDirectory = voiceMemosDirectory.appendingPathComponent(recordingId.uuidString, isDirectory: true)
         
         // Crear directorio si no existe
         if !FileManager.default.fileExists(atPath: recordingDirectory.path) {
             do {
                 try FileManager.default.createDirectory(at: recordingDirectory, withIntermediateDirectories: true)
+                print("📁 Created directory for recording: \(recordingDirectory.path)")
             } catch {
-                print("Error creating directory for processing files: \(error)")
+                print("❌ Error creating directory for processing files: \(error)")
                 return
             }
+        } else {
+            print("📁 Using existing directory: \(recordingDirectory.path)")
         }
         
         // Guardar la transcripción original
         let transcriptionURL = recordingDirectory.appendingPathComponent("transcription.txt")
         do {
             try transcription.write(to: transcriptionURL, atomically: true, encoding: .utf8)
+            print("📄 Saved transcription to: \(transcriptionURL.path)")
         } catch {
-            print("Error saving transcription: \(error)")
+            print("❌ Error saving transcription: \(error)")
         }
         
         // Guardar la respuesta cruda de la API
         let responseURL = recordingDirectory.appendingPathComponent("analysis.json")
         do {
             try responseData.write(to: responseURL)
+            print("📄 Saved analysis JSON to: \(responseURL.path)")
         } catch {
-            print("Error saving API response: \(error)")
+            print("❌ Error saving API response: \(error)")
         }
     }
 }

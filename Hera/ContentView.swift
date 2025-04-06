@@ -113,6 +113,8 @@ struct ContentView: View {
     
     @State private var playbackViewKey = UUID() // Añadir una clave única y estable para el PlaybackViewWrapper
     
+    @State private var isDebugModeEnabled = true // Variables para diagnóstico
+    
     // Colores personalizados
     private let iconColor = Color("PrimaryText") // Color adaptativo para iconos
     
@@ -193,6 +195,44 @@ struct ContentView: View {
                 NotificationCenter.default.removeObserver(self)
             }
             .tint(AppColors.adaptiveTint) // Color de acento adaptativo
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    // Menu con opciones
+                    Menu {
+                        Button(action: {
+                            showingSettingsSheet = true
+                        }) {
+                            Label("API Key", systemImage: "key")
+                        }
+                        
+                        Divider()
+                        
+                        Button(action: {
+                            loadRecordingsFromFilesystem()
+                        }) {
+                            Label("Reload Recordings", systemImage: "arrow.clockwise")
+                        }
+                        
+                        if isDebugModeEnabled {
+                            Divider()
+                            
+                            Button(action: {
+                                debugRun()
+                            }) {
+                                Label("Run Debug", systemImage: "ladybug")
+                            }
+                            
+                            Button(action: {
+                                verifyFilesystem()
+                            }) {
+                                Label("Check Files", systemImage: "folder.badge.questionmark")
+                            }
+                        }
+                    } label: {
+                        Label("Menu", systemImage: "ellipsis.circle")
+                    }
+                }
+            }
     }
     
     // MARK: - Vista principal separada
@@ -688,6 +728,20 @@ struct ContentView: View {
             dateFormatter.timeStyle = .none
             return dateFormatter.string(from: date)
         }
+    }
+    
+    // MARK: - Debug Functions
+    
+    // Funciones para diagnóstico y desarrollo
+    private func debugRun() {
+        print("🔍 Executing debug function...")
+        // Añade aquí código de debug si es necesario
+    }
+    
+    private func verifyFilesystem() {
+        print("🔍 Verifying file system...")
+        audioManager.verifyAndRepairDirectoryStructure()
+        audioManager.listAndVerifyRecordings()
     }
 }
 
