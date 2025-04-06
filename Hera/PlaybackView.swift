@@ -1774,6 +1774,7 @@ extension AudioManager {
 // Vista para visualizar forma de onda durante reproducción
 struct PlaybackBarsView: View {
     var isPlaying: Bool
+    @Environment(\.colorScheme) private var colorScheme
     
     // Estado para la animación de los círculos
     @State private var scales: [CGFloat] = [0.8, 0.6, 0.9, 0.7]
@@ -1784,7 +1785,9 @@ struct PlaybackBarsView: View {
             // Cuatro círculos animados
             ForEach(0..<4) { index in
                 Circle()
-                    .fill(isPlaying ? Color.black : Color.gray.opacity(0.3))
+                    .fill(colorScheme == .dark ? 
+                          (isPlaying ? Color(white: 0.9) : Color.gray.opacity(0.3)) : 
+                          (isPlaying ? Color.black : Color.gray.opacity(0.3)))
                     .frame(width: 50, height: 50)
                     .scaleEffect(scales[index])
                     .animation(isPlaying ? .easeInOut(duration: 0.6) : nil, value: scales[index])
