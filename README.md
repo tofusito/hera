@@ -1,114 +1,105 @@
-# 🐱 Hera - Voice Recording & AI Analysis App
+# 🐾 Hera – Your Voice, Reimagined
 
 ![Hera Logo](https://via.placeholder.com/150x150.png?text=Hera)
 
-## 🌟 About Hera
-
-Hera is a powerful voice recording application inspired by and named after my beloved cat, Hera. Just as she listens attentively to every sound in her environment, this app captures and understands your voice with precision and elegance.
-
-## 🔥 Features
-
-- 🎙️ **High-quality audio recording** with visual feedback
-- 📝 **AI-powered transcription** of your recordings
-- 🧠 **Intelligent analysis** of transcribed content
-- 📊 **Summary generation** of key points from your recordings
-- 📅 **Event detection** and calendar integration
-- 📱 **Minimalist design** with pawprint-inspired UI elements
-- 🌓 **Dark & light mode** support with adaptive colors
-- 💾 **Import audio files** from other apps
-
-## 🛠️ Technical Architecture
-
-### Core Technologies
-- **Swift & SwiftUI**: Modern UI framework for iOS
-- **SwiftData**: For persistent data storage
-- **AVFoundation**: For audio recording and playback
-- **AI Integration**: OpenAI, Google Gemini, and Anthropic Claude API support
-
-### App Structure
-
-#### Data Models
-- `AudioRecording`: SwiftData model for storing recording metadata
-- `DisplayableRecording`: Structure for UI representation with additional metadata
-
-#### Main Components
-- **Content View**: Main interface with recording list and navigation
-- **Record View**: UI for capturing new recordings with visual feedback
-- **Playback View**: For listening to recordings with visualization
-- **Transcription System**: Sends audio to AI APIs for text conversion
-- **Analysis System**: Processes transcriptions to extract insights
-
-### File System Structure
-The app organizes recordings in a smart directory structure:
-- Each recording has its own folder with a UUID identifier
-- Inside each folder:
-  - `audio.m4a`: The actual audio recording
-  - `transcription.txt`: Plain text of the transcription (when available)
-  - `analysis.json`: JSON data with AI analysis (when available)
-
-## 🧩 Architecture Patterns
-
-### MVVM Design
-- **Models**: SwiftData entities like `AudioRecording`
-- **Views**: SwiftUI components structured hierarchically
-- **ViewModels**: Logic encapsulated in classes like `AudioManager`
-
-### State Management
-- `@StateObject` for view-local observable objects
-- `@Environment` for accessing environment values
-- `@AppStorage` for persistent user preferences
-- `@Query` for SwiftData access
-
-## 💡 Special Features
-
-### Advanced Audio Management
-The app maintains precise control over the audio lifecycle with the `AudioManager` class that:
-- Handles recording sessions with proper permissions
-- Manages audio levels for visualization
-- Creates folder structures for new recordings
-- Handles audio playback with timer synchronization
-
-### Filesystem/Database Synchronization
-The app implements a robust system to:
-- Keep filesystem data and SwiftData in sync
-- Clean up orphaned entries
-- Detect and repair inconsistencies
-- Import external audio files
-
-### Adaptive UI
-- Custom color schemes that adjust to light/dark mode
-- Pawprint icon that changes color based on appearance
-- Smooth animations and transitions for recording visualization
-
-## 🐈 Inspiration: My Cat Hera
-
-This project is a loving tribute to my cat Hera, whose attentive nature and discerning ear inspired the app's focus on listening and understanding. The minimalist pawprint logo represents her gentle presence, while the app's functionality mirrors her ability to pay attention to the important details in her environment.
-
-## 🚀 Getting Started
-
-1. Clone the repository
-2. Open the project in Xcode
-3. Build and run on your iOS device or simulator
-4. For AI features, configure API keys in the settings
-
-## 🔮 Future Plans
-
-- Voice recognition for speaker identification
-- Enhanced ML capabilities for more detailed analysis
-- Cloud synchronization for recordings
-- Sharing capabilities with other users
-- Additional themes and UI customizations
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgements
-
-- Apple for SwiftUI and SwiftData
-- OpenAI, Google, and Anthropic for their AI APIs
-- My cat Hera, for being my constant companion during development
+**Minimalist AI voice note app, lovingly inspired by a tuxedo cat named Hera.**  
+Capture your thoughts. Summarize them effortlessly. Let your voice become action.
 
 ---
 
-*Made with ❤️ by Manuel Jesús Gutiérrez Fernández* 
+## ✨ What is Hera?
+
+**Hera** is an iOS voice recording app that goes beyond just storing audio.  
+It listens, thinks, and helps you organize your thoughts — all with the elegance and intuition of the cat who inspired it.
+
+Yes, a cat.
+
+Named after *Hera*, my tuxedo cat who’s been my quiet companion through chaos and calm, this app is a tribute to attention, presence, and clarity.
+
+---
+
+## 🎯 Features at a Glance
+
+- 🎙️ **Crystal-clear voice recording** with real-time visual feedback  
+- 📝 **AI-powered transcription** using top-tier language models  
+- 🧠 **Smart summarization** to extract key points  
+- 📅 **Automatic detection of events, tasks & reminders**  
+- 🐾 **Minimal, distraction-free UI** inspired by Hera's serene presence  
+- 💾 **Import audio files** and organize them effortlessly  
+- 🌗 **Dark & light mode** with dynamic pawprint themes  
+
+---
+
+## 🧠 Powered by Tech You Can Trust
+
+- **Swift & SwiftUI** – modern, sleek, native iOS framework  
+- **AVFoundation** – reliable audio input/output  
+- **SwiftData** – efficient local storage  
+- **AI APIs** – Plug-and-play support for OpenAI, Claude, Gemini  
+- **Custom logic for filesystem + DB sync** – because chaos isn’t cute  
+
+---
+
+## 🐱 Why Hera?
+
+Because building yet another notes app was *boring*.  
+Hera was always listening when I wasn’t. Now, this app does the same.  
+No ads. No noise. Just your voice, distilled into something useful — with a touch of feline clarity.
+
+---
+
+## ☕ Help Bring Hera to the App Store
+
+Right now, Hera lives on my iPhone, like a secret productivity tool I can’t share.  
+But I want to release it for **everyone** — minimalists, voice note addicts, anxious creatives, even dog people.
+
+**Apple charges 99€ a year to join the developer program.**  
+So I’m raising funds to make it happen.
+
+### 👉 [Buy me a coffee and help Hera pounce onto the App Store](https://www.buymeacoffee.com/tofusito)
+
+![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)
+
+Your support helps cover the cost of:
+- 💸 Apple Dev Program fee  
+- 🐛 Bug hunting snacks (for me, not Hera)  
+- 🎨 Ongoing design tweaks & cat-themed polish  
+- 🧪 Beta testing & community building  
+
+---
+
+## 🚀 Roadmap (aka: Dreams in Progress)
+
+- ✨ Local AI model support (offline mode)  
+- ☁️ iCloud sync for recordings  
+- 🔁 Sharing recordings + summaries with friends  
+- 🐈‍⬛ Animated Hera reactions to your tone (don’t ask)  
+- 📦 Export to Notion, Markdown, PDF  
+- 🌍 Multilingual transcription
+
+---
+
+## 📦 Getting Started (Developers)
+
+1. Clone this repo
+2. Open in Xcode 15+
+3. Configure your AI API keys
+4. Build & run on device (free provisioning works!)
+
+---
+
+## 📜 License
+
+MIT – do whatever you want, just don’t sell it and claim you’re the cat whisperer who made this.
+
+---
+
+## 🙌 Credits
+
+- Apple – for tools that almost make me want to pay 99€  
+- OpenAI, Google, Anthropic – for letting my app pretend it’s smart  
+- Hera – for being the boss of me and this project
+
+---
+
+*Made with too much love, and just enough caffeine, by [Manuel Jesús Gutiérrez Fernández](https://www.buymeacoffee.com/tofusito)*  

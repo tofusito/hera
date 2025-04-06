@@ -428,7 +428,8 @@ struct PlaybackView: View {
                 HStack {
                     Spacer()
                     Button(action: {
-                        showAllNotes = true
+                        // Cambiar a NavigationLink programático
+                        openWindow(value: "noteslist")
                     }) {
                         ZStack {
                             Circle()
@@ -471,7 +472,7 @@ struct PlaybackView: View {
                             }
                         }
                         
-                        // Mostrar la vista de notas
+                        // Mostrar la vista de notas usando navegación en lugar de sheet
                         showAllNotes = true
                     }
                     .scaleEffect(buttonScale)
@@ -638,7 +639,8 @@ struct PlaybackView: View {
                 timer = nil
             }
         }
-        .sheet(isPresented: $showAllNotes) {
+        // Cambiar sheet a NavigationLink
+        .navigationDestination(isPresented: $showAllNotes) {
             AnalyzedNotesListView()
         }
     }
@@ -1924,15 +1926,13 @@ struct PlaybackBarsView: View {
 struct AnalyzedNotesListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @State private var analyzedNotes: [AnalyzedNote] = []
-    @State private var selectedNote: AnalyzedNote?
-    @State private var showDetail: Bool = false
+    @State private var analyzedNotes: [PlaybackAnalyzedNote] = []
     @State private var searchText: String = ""
     @State private var sortOrder: SortOrder = .newest
     @State private var showSortOptions: Bool = false
     
     // Propiedades calculadas para filtrar y ordenar notas
-    private var filteredNotes: [AnalyzedNote] {
+    private var filteredNotes: [PlaybackAnalyzedNote] {
         if searchText.isEmpty {
             return sortedNotes
         } else {
@@ -1944,7 +1944,7 @@ struct AnalyzedNotesListView: View {
         }
     }
     
-    private var sortedNotes: [AnalyzedNote] {
+    private var sortedNotes: [PlaybackAnalyzedNote] {
         switch sortOrder {
         case .newest:
             return analyzedNotes.sorted { $0.created > $1.created }
@@ -1956,116 +1956,95 @@ struct AnalyzedNotesListView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            VStack {
-                if analyzedNotes.isEmpty {
-                    ContentUnavailableView(
-                        "No analyzed notes",
-                        systemImage: "note.text",
-                        description: Text("Notes will appear here after analyzing your recordings.")
-                    )
-                } else if filteredNotes.isEmpty {
-                    ContentUnavailableView.search
-                } else {
-                    List {
-                        ForEach(filteredNotes) { note in
-                            Button(action: {
-                                selectedNote = note
-                                showDetail = true
-                            }) {
-                                HStack(spacing: 15) {
-                                    // Icono de la nota con círculo
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.blue.opacity(0.1))
-                                            .frame(width: 44, height: 44)
-                                        
-                                        Image(systemName: "doc.text")
-                                            .font(.system(size: 18))
-                                            .foregroundColor(.blue)
-                                    }
-                                    
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(note.title)
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                        Text(note.recordingTitle)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                    Spacer()
-                                    
-                                    // Fecha e icono de flecha
-                                    VStack(alignment: .trailing, spacing: 4) {
-                                        Text(formatDate(note.created))
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                        
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                                .padding(.vertical, 8)
+        List {
+            if analyzedNotes.isEmpty {
+                ContentUnavailableView(
+                    "No hay notas analizadas",
+                    systemImage: "note.text",
+                    description: Text("Las notas aparecerán aquí después de analizar tus grabaciones.")
+                )
+            } else if filteredNotes.isEmpty {
+                ContentUnavailableView.search
+            } else {
+                ForEach(filteredNotes) { note in
+                    NavigationLink {
+                        NoteDetailFullScreenView(note: note)
+                    } label: {
+                        HStack(spacing: 15) {
+                            // Icono de la nota con círculo
+                            ZStack {
+                                Circle()
+                                    .fill(Color.blue.opacity(0.1))
+                                    .frame(width: 44, height: 44)
+                                
+                                Image(systemName: "doc.text")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.blue)
                             }
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color(UIColor.secondarySystemBackground).opacity(0.5))
-                                    .padding(
-                                        EdgeInsets(
-                                            top: 4,
-                                            leading: 8,
-                                            bottom: 4,
-                                            trailing: 8
-                                        )
-                                    )
-                            )
-                            .transition(.asymmetric(
-                                insertion: .scale.combined(with: .opacity),
-                                removal: .opacity
-                            ))
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(note.title)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text(note.recordingTitle)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+                            Spacer()
+                            
+                            // Fecha
+                            Text(formatDate(note.created))
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
                         }
-                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                        .padding(.vertical, 8)
                     }
-                    .listStyle(.plain)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(UIColor.secondarySystemBackground).opacity(0.5))
+                            .padding(
+                                EdgeInsets(
+                                    top: 4,
+                                    leading: 8,
+                                    bottom: 4,
+                                    trailing: 8
+                                )
+                            )
+                    )
                 }
             }
-            .navigationTitle("Analyzed Notes")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        showSortOptions = true
-                    }) {
-                        Label("Sort", systemImage: "arrow.up.arrow.down")
-                    }
-                    .confirmationDialog("Sort Notes", isPresented: $showSortOptions) {
-                        Button("Newest First") { sortOrder = .newest }
-                        Button("Oldest First") { sortOrder = .oldest }
-                        Button("Alphabetical") { sortOrder = .alphabetical }
-                        Button("Cancel", role: .cancel) { }
-                    }
+        }
+        .listStyle(.plain)
+        .navigationTitle("Mis Notas")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    showSortOptions = true
+                }) {
+                    Label("Sort", systemImage: "arrow.up.arrow.down")
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Text("Done")
-                    }
+                .confirmationDialog("Ordenar Notas", isPresented: $showSortOptions) {
+                    Button("Más recientes primero") { sortOrder = .newest }
+                    Button("Más antiguas primero") { sortOrder = .oldest }
+                    Button("Alfabéticamente") { sortOrder = .alphabetical }
+                    Button("Cancelar", role: .cancel) { }
                 }
             }
-            .searchable(text: $searchText, prompt: "Search notes")
-            .onAppear {
-                loadAnalyzedNotes()
-            }
-            .sheet(isPresented: $showDetail) {
-                if let note = selectedNote {
-                    AnalyzedNoteDetailView(note: note)
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Text("Cerrar")
                 }
             }
+        }
+        .searchable(text: $searchText, prompt: "Buscar notas")
+        .onAppear {
+            loadAnalyzedNotes()
         }
     }
     
@@ -2074,21 +2053,27 @@ struct AnalyzedNotesListView: View {
         
         do {
             let recordings = try modelContext.fetch(fetchDescriptor)
-            var notes: [AnalyzedNote] = []
+            var notes: [PlaybackAnalyzedNote] = []
             
             for recording in recordings {
-                if let analysis = recording.analysis,
-                   let analysisData = try? JSONDecoder().decode(AnalysisResult.self, from: Data(analysis.utf8)) {
-                    let title = analysisData.suggestedTitle ?? "Untitled Note"
-                    let summary = analysisData.summary
-                    let note = AnalyzedNote(
-                        id: recording.id,
-                        title: title,
-                        summary: summary,
-                        recordingTitle: recording.title,
-                        created: recording.timestamp
-                    )
-                    notes.append(note)
+                if let analysis = recording.analysis {
+                    print("📊 Analysis found for recording \(recording.title)")
+                    
+                    // Procesar el JSON
+                    let processedData = processAnalysisJSON(analysis)
+                    
+                    if let title = processedData.title, let summary = processedData.summary {
+                        print("✅ Procesado exitoso - Título: \(title), Longitud resumen: \(summary.count)")
+                        
+                        let note = PlaybackAnalyzedNote(
+                            id: recording.id,
+                            title: title,
+                            summary: summary,
+                            recordingTitle: recording.title,
+                            created: recording.timestamp
+                        )
+                        notes.append(note)
+                    }
                 }
             }
             
@@ -2101,76 +2086,160 @@ struct AnalyzedNotesListView: View {
             print("❌ Error loading analyzed notes: \(error)")
         }
     }
+    
+    // Función para procesar el JSON de análisis
+    private func processAnalysisJSON(_ jsonString: String) -> (title: String?, summary: String?) {
+        print("🔄 Procesando JSON: \(jsonString.prefix(100))...")
+        
+        // Intentar extraer desde la respuesta directa de OpenAI
+        if let jsonData = jsonString.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+           let choices = json["choices"] as? [[String: Any]],
+           let firstChoice = choices.first,
+           let message = firstChoice["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            
+            print("🔍 Contenido del mensaje encontrado: \(content.prefix(100))...")
+            
+            // Extraer el JSON del contenido
+            if let jsonStartIndex = content.firstIndex(of: "{"),
+               let jsonEndIndex = content.lastIndex(of: "}") {
+                
+                let jsonContent = String(content[jsonStartIndex...jsonEndIndex])
+                print("📄 JSON interno extraído: \(jsonContent.prefix(100))...")
+                
+                if let innerData = jsonContent.data(using: .utf8),
+                   let innerJson = try? JSONSerialization.jsonObject(with: innerData) as? [String: Any] {
+                    
+                    let title = innerJson["suggestedTitle"] as? String ?? "Nota sin título"
+                    let summary = innerJson["summary"] as? String ?? "Sin contenido"
+                    
+                    return (title, summary)
+                }
+            }
+        }
+        
+        // Intentar procesar como JSON directo de AnalysisResult
+        if let jsonData = jsonString.data(using: .utf8),
+           let analysisResult = try? JSONDecoder().decode(AnalysisResult.self, from: jsonData) {
+            return (analysisResult.suggestedTitle, analysisResult.summary)
+        }
+        
+        return (nil, nil)
+    }
 }
 
-struct AnalyzedNoteDetailView: View {
-    let note: AnalyzedNote
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
+// NUEVA VISTA A PANTALLA COMPLETA PARA EL DETALLE DE NOTAS
+struct NoteDetailFullScreenView: View {
+    let note: PlaybackAnalyzedNote
+    @State private var showCopiedMessage: Bool = false
+    
+    // Convertir el resumen a formato markdown
+    private var markdownContent: String {
+        """
+        # \(note.title)
+        
+        \(note.summary)
+        
+        ---
+        Grabación: \(note.recordingTitle)
+        Fecha: \(formatDate(note.created, includeTime: true))
+        """
+    }
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Info header
-                    HStack {
-                        Image(systemName: "calendar")
-                            .foregroundColor(.secondary)
-                        Text("Created on \(formatDate(note.created, includeTime: true))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)
-                    
-                    // Summary content
-                    Text(note.summary)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(colorScheme == .dark ? 
-                                      Color(UIColor.secondarySystemBackground) : 
-                                      Color(UIColor.secondarySystemBackground))
-                        )
-                        .padding(.horizontal)
-                    
-                    // Recording info
-                    HStack {
-                        Image(systemName: "waveform")
-                            .foregroundColor(.secondary)
-                        Text("From recording: \(note.recordingTitle)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // Sección de fecha
+                HStack {
+                    Image(systemName: "calendar")
+                        .foregroundColor(.blue)
+                    Text(formatDate(note.created, includeTime: true))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
-                .padding(.vertical)
-            }
-            .navigationTitle(note.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Text("Close")
-                    }
+                .padding(.top, 16)
+                
+                Divider()
+                
+                // Contenido del resumen - MUY SIMPLIFICADO Y DIRECTO
+                Text(note.summary)
+                    .font(.body)
+                    .lineSpacing(8)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                Divider()
+                
+                // Información de la grabación
+                HStack {
+                    Image(systemName: "waveform")
+                        .foregroundColor(.purple)
+                    Text("De la grabación: \(note.recordingTitle)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        shareNote()
-                    }) {
-                        Image(systemName: "square.and.arrow.up")
+                // Botón para copiar al portapapeles
+                Button(action: {
+                    UIPasteboard.general.string = markdownContent
+                    
+                    withAnimation {
+                        showCopiedMessage = true
                     }
+                    
+                    // Ocultar el mensaje después de 2 segundos
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation {
+                            showCopiedMessage = false
+                        }
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "doc.on.doc")
+                        Text("Copiar al portapapeles")
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule()
+                            .fill(Color.blue.opacity(0.1))
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 16)
+                .overlay(
+                    Text("¡Copiado!")
+                        .font(.caption)
+                        .padding(6)
+                        .background(Color.blue.opacity(0.2))
+                        .cornerRadius(4)
+                        .offset(y: -30)
+                        .opacity(showCopiedMessage ? 1 : 0)
+                )
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 30)
+        }
+        .navigationTitle(note.title)
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    shareNote()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
                 }
             }
         }
     }
     
     private func shareNote() {
-        let content = "\(note.title)\n\n\(note.summary)"
+        let content = markdownContent
         let activityVC = UIActivityViewController(activityItems: [content], applicationActivities: nil)
         
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -2186,7 +2255,7 @@ enum SortOrder {
 }
 
 // Modelo para las notas analizadas
-struct AnalyzedNote: Identifiable {
+struct PlaybackAnalyzedNote: Identifiable {
     let id: UUID
     let title: String
     let summary: String

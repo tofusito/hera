@@ -110,6 +110,8 @@ struct ContentView: View {
     @State private var isImporting = false
     
     @State private var displayableRecordings: [DisplayableRecording] = [] // Estado para la lista
+    @State private var filteredRecordings: [DisplayableRecording] = [] // Grabaciones filtradas
+    @State private var searchText: String = "" // Texto de búsqueda
     
     @State private var playbackViewKey = UUID() // Añadir una clave única y estable para el PlaybackViewWrapper
     
@@ -315,26 +317,38 @@ struct ContentView: View {
     
     @ViewBuilder
     private func recordingListView() -> some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(displayableRecordings) { recording in
-                    DisplayableRecordingCell(recording: recording)
-                        .contentShape(Rectangle())
-                        .shadow(color: colorScheme == .dark ?
-                                Color.black.opacity(0.08) :
-                                Color.black.opacity(0.12),
-                                radius: 3, x: 0, y: 2)
-                        .padding(.horizontal)
-                        .padding(.vertical, 2)
-                        .onTapGesture {
-                            handleRecordingTap(recording)
-                        }
+        VStack {
+            // Search bar
+            SearchBar(text: $searchText, placeholder: "Search recordings")
+                .padding(.horizontal)
+                .padding(.top, 8)
+            
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    let recordingsToShow = searchText.isEmpty ? displayableRecordings : filteredRecordings
+                    
+                    ForEach(recordingsToShow) { recording in
+                        DisplayableRecordingCell(recording: recording)
+                            .contentShape(Rectangle())
+                            .shadow(color: colorScheme == .dark ?
+                                    Color.black.opacity(0.08) :
+                                    Color.black.opacity(0.12),
+                                    radius: 3, x: 0, y: 2)
+                            .padding(.horizontal)
+                            .padding(.vertical, 2)
+                            .onTapGesture {
+                                handleRecordingTap(recording)
+                            }
+                    }
+                    .onDelete(perform: deleteRecordingsFromFilesystem)
                 }
-                .onDelete(perform: deleteRecordingsFromFilesystem)
+                .padding(.vertical)
             }
-            .padding(.vertical)
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
+        .onChange(of: searchText) { _, newValue in
+            filterRecordings()
+        }
     }
     
     @ViewBuilder
@@ -343,7 +357,7 @@ struct ContentView: View {
             Spacer()
             
             HStack {
-                // Icono de lista de notas (izquierda) con sombra
+                // Notes list icon (left) with shadow
                 Button {
                     showingNotesList = true
                 } label: {
@@ -362,17 +376,17 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                // Botón central de grabación (con sombra)
+                // Central recording button (with shadow)
                 Button {
                     isShowingRecordView = true
                 } label: {
                     ZStack {
-                        // Material de fondo con efecto de vidrio
+                        // Background material with glass effect
                         Circle()
                             .fill(.ultraThinMaterial)
                             .frame(width: 74, height: 74)
                         
-                        // Círculo principal con borde suave
+                        // Main circle with soft border
                         Circle()
                             .fill(Color(.white).opacity(colorScheme == .dark ? 0.2 : 0.9))
                             .frame(width: 66, height: 66)
@@ -385,12 +399,12 @@ struct ContentView: View {
                     }
                     .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.18),
                             radius: 12, x: 0, y: 4)
-                    .offset(y: -2) // Elevarlo ligeramente para dar sensación de relieve
+                    .offset(y: -2) // Slightly elevated to give a relief sensation
                 }
                 
                 Spacer()
                 
-                // Icono de configuración (derecha) con sombra
+                // Settings icon (right) with shadow
                 Button {
                     showingSettingsSheet = true
                 } label: {
@@ -419,31 +433,31 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Vista de reproducción
+    // MARK: - Playback View
     @ViewBuilder
     private func playbackSheetView(for recording: DisplayableRecording) -> some View {
         NavigationView {
-            // Buscar grabación en SwiftData con función separada
+            // Find recording in SwiftData with separate function
             let originalRecording = findOrCreateRecording(from: recording)
             
-            // Mostrar vista de reproducción
+            // Show playback view
             PlaybackView(audioManager: audioManager, recording: originalRecording)
-                .id(recording.id) // ID fijo para evitar regeneraciones
+                .id(recording.id) // Fixed ID to prevent regeneration
         }
     }
     
-    // MARK: - Funciones auxiliares
+    // MARK: - Helper Functions
     private func findOrCreateRecording(from displayableRecording: DisplayableRecording) -> AudioRecording {
-        // Buscar grabación en SwiftData
+        // Search for recording in SwiftData
         let fetchDescriptor = FetchDescriptor<AudioRecording>()
         let allRecordings = (try? modelContext.fetch(fetchDescriptor)) ?? []
         
-        // Buscar por ID
+        // Search by ID
         if let found = allRecordings.first(where: { $0.id == displayableRecording.id }) {
             return found
         }
         
-        // Si no existe, crear una nueva
+        // If it doesn't exist, create a new one
         return AudioRecording(
             id: displayableRecording.id,
             title: displayableRecording.title,
@@ -456,26 +470,26 @@ struct ContentView: View {
     }
     
     private func handleRecordingTap(_ recording: DisplayableRecording) {
-        // Primero detener cualquier reproducción actual para evitar conflictos
+        // First stop any current playback to avoid conflicts
         if audioManager.isPlaying {
             audioManager.stopPlayback()
         }
         
-        // Usamos DispatchQueue para evitar cambios de estado durante actualización
+        // Use DispatchQueue to avoid state changes during updates
         DispatchQueue.main.async {
             selectedRecordingForPlayback = recording
-            print("🔍 Seleccionada grabación: \(recording.id.uuidString)")
+            print("🔍 Selected recording: \(recording.id.uuidString)")
         }
     }
     
-    // Función para cargar grabaciones desde el sistema de archivos
+    // Function to load recordings from filesystem
     private func loadRecordingsFromFilesystem() {
         guard let voiceMemosURL = audioManager.getVoiceMemosDirectoryURL() else {
             displayableRecordings = []
             return
         }
         
-        print("📂 Buscando grabaciones en: \(voiceMemosURL.path)")
+        print("📂 Looking for recordings in: \(voiceMemosURL.path)")
         
         var foundRecordings: [DisplayableRecording] = []
         let fileManager = FileManager.default
@@ -484,79 +498,79 @@ struct ContentView: View {
         do {
             let folderURLs = try fileManager.contentsOfDirectory(at: voiceMemosURL, includingPropertiesForKeys: [.isDirectoryKey], options: .skipsHiddenFiles)
             
-            print("🔍 Encontradas \(folderURLs.count) carpetas")
+            print("🔍 Found \(folderURLs.count) folders")
             
             for folderURL in folderURLs {
-                // Asegurarse de que es un directorio y su nombre es un UUID válido
+                // Make sure it's a directory and its name is a valid UUID
                 let resourceValues = try? folderURL.resourceValues(forKeys: [.isDirectoryKey])
                 guard resourceValues?.isDirectory == true else { continue }
                 
                 guard let recordingId = UUID(uuidString: folderURL.lastPathComponent) else {
-                    print("⚠️ Carpeta con nombre no válido: \(folderURL.lastPathComponent)")
+                    print("⚠️ Folder with invalid name: \(folderURL.lastPathComponent)")
                     continue
                 }
                 
-                // Comprobar si existe un archivo de audio
+                // Check if an audio file exists
                 let audioFileURL = folderURL.appendingPathComponent("audio.m4a")
                 guard fileManager.fileExists(atPath: audioFileURL.path) else {
-                    print("⚠️ No se encontró audio.m4a en: \(folderURL.path)")
+                    print("⚠️ audio.m4a not found in: \(folderURL.path)")
                     continue
                 }
                 
-                // Intentar encontrar metadatos en SwiftData
+                // Try to find metadata in SwiftData
                 if let existingData = allRecordingsData.first(where: { $0.id == recordingId }) {
-                    // Verificar si la URL almacenada en SwiftData es correcta
+                    // Verify if the URL stored in SwiftData is correct
                     if existingData.fileURL?.path != audioFileURL.path {
-                        print("🔄 Corrigiendo ruta en SwiftData para \(recordingId)")
-                        print("   - Antigua: \(existingData.fileURL?.path ?? "nil")")
-                        print("   - Nueva: \(audioFileURL.path)")
+                        print("🔄 Correcting path in SwiftData for \(recordingId)")
+                        print("   - Old: \(existingData.fileURL?.path ?? "nil")")
+                        print("   - New: \(audioFileURL.path)")
                         
-                        // Actualizar la ruta en SwiftData
+                        // Update the path in SwiftData
                         existingData.fileURL = audioFileURL
                         modified = true
                     }
                     
-                    // Verificar si existe un archivo de transcripción
+                    // Check if a transcription file exists
                     let transcriptionFileURL = folderURL.appendingPathComponent("transcription.txt")
                     if fileManager.fileExists(atPath: transcriptionFileURL.path) {
                         do {
-                            // Si hay transcripción en archivo, pero no en SwiftData o es diferente
+                            // If there is transcription in file but not in SwiftData or it's different
                             let transcriptionText = try String(contentsOf: transcriptionFileURL, encoding: .utf8)
                             if existingData.transcription != transcriptionText {
-                                print("🔄 Actualizando transcripción para grabación: \(recordingId)")
+                                print("🔄 Updating transcription for recording: \(recordingId)")
                                 existingData.transcription = transcriptionText
                                 modified = true
                             }
                         } catch {
-                            print("⚠️ Error al leer transcripción para \(recordingId): \(error)")
+                            print("⚠️ Error reading transcription for \(recordingId): \(error)")
                         }
                     } else if existingData.transcription != nil {
-                        // Si no hay archivo pero hay transcripción en SwiftData
-                        // En este caso, limpiamos la transcripción en SwiftData para mantener consistencia
-                        print("🧹 Eliminando transcripción sin archivo para: \(recordingId)")
+                        // If there's no file but there is transcription in SwiftData
+                        // In this case, we clear the transcription in SwiftData to maintain consistency
+                        print("🧹 Removing transcription without file for: \(recordingId)")
                         existingData.transcription = nil
                         modified = true
                     }
                     
                     if let displayable = DisplayableRecording(from: existingData) {
-                        // Usar datos de SwiftData
+                        // Use data from SwiftData
                         foundRecordings.append(displayable)
                     }
                 } else {
-                    // Si no hay datos en SwiftData, crear desde el sistema de archivos
+                    // If there's no data in SwiftData, create from filesystem
                     if let displayable = DisplayableRecording(id: recordingId, folderURL: folderURL) {
                         foundRecordings.append(displayable)
                         
-                        print("➕ Creando nuevo registro en SwiftData para \(recordingId)")
-                        // Crear entrada en SwiftData con posible transcripción
+                        print("➕ Creating new record in SwiftData for \(recordingId)")
+                        // Create entry in SwiftData with possible transcription
                         let newRecordingData = AudioRecording(
                             id: recordingId,
                             title: displayable.title,
                             timestamp: displayable.timestamp,
                             duration: displayable.duration,
                             fileURL: displayable.fileURL,
-                            transcription: displayable.transcription,  // Incluir transcripción si existe
-                            analysis: displayable.analysis  // Incluir análisis si existe
+                            transcription: displayable.transcription,  // Include transcription if it exists
+                            analysis: displayable.analysis  // Include analysis if it exists
                         )
                         modelContext.insert(newRecordingData)
                         modified = true
@@ -564,37 +578,42 @@ struct ContentView: View {
                 }
             }
             
-            // Intentar guardar cambios en SwiftData
+            // Try to save changes to SwiftData
             if modelContext.hasChanges {
                 do {
                     try modelContext.save()
-                    print("✅ Cambios guardados en SwiftData")
+                    print("✅ Changes saved to SwiftData")
                 } catch {
-                    print("❌ Error al guardar cambios en SwiftData: \(error)")
+                    print("❌ Error saving changes to SwiftData: \(error)")
                 }
             }
             
         } catch {
-            print("❌ Error al leer el directorio Hera: \(error)")
+            print("❌ Error reading Hera directory: \(error)")
         }
         
-        // Ordenar por fecha (más reciente primero)
+        // Sort by date (most recent first)
         foundRecordings.sort { $0.timestamp > $1.timestamp }
         
-        // Actualizar el estado
+        // Update state
         displayableRecordings = foundRecordings
         
-        print("📊 Total grabaciones cargadas: \(foundRecordings.count)")
+        print("📊 Total recordings loaded: \(foundRecordings.count)")
         
-        // Limpieza opcional: Eliminar entradas de SwiftData que no tienen carpeta correspondiente
+        // Optional cleanup: Remove SwiftData entries that don't have a corresponding folder
         cleanupOrphanedSwiftDataEntries(filesystemIds: Set(foundRecordings.map { $0.id }))
         
         if modified {
             loadRecordingsFromFilesystem()
         }
+        
+        // After updating displayableRecordings
+        if !searchText.isEmpty {
+            filterRecordings()
+        }
     }
     
-    // Función para eliminar grabaciones
+    // Function to delete recordings
     private func deleteRecordingsFromFilesystem(offsets: IndexSet) {
         withAnimation {
             let idsToDelete = offsets.map { displayableRecordings[$0].id }
@@ -604,14 +623,14 @@ struct ContentView: View {
                 do {
                     if FileManager.default.fileExists(atPath: folderURL.path) {
                         try FileManager.default.removeItem(at: folderURL)
-                        print("Eliminada carpeta: \(folderURL.lastPathComponent)")
+                        print("Deleted folder: \(folderURL.lastPathComponent)")
                     }
                 } catch {
-                    print("Error al eliminar carpeta \(folderURL.lastPathComponent): \(error)")
+                    print("Error deleting folder \(folderURL.lastPathComponent): \(error)")
                 }
             }
             
-            // Eliminar de SwiftData también
+            // Also delete from SwiftData
             let fetchDescriptor = FetchDescriptor<AudioRecording>(predicate: #Predicate { idsToDelete.contains($0.id) })
             do {
                 let dataToDelete = try modelContext.fetch(fetchDescriptor)
@@ -620,21 +639,21 @@ struct ContentView: View {
                 }
                 try modelContext.save()
             } catch {
-                 print("Error eliminando de SwiftData: \(error)")
+                 print("Error deleting from SwiftData: \(error)")
             }
             
-            // Actualizar la lista UI
+            // Update UI list
             displayableRecordings.remove(atOffsets: offsets)
         }
     }
     
-    // Función opcional para limpiar SwiftData
+    // Optional function to clean up SwiftData
     private func cleanupOrphanedSwiftDataEntries(filesystemIds: Set<UUID>) {
         let dataIds = Set(allRecordingsData.map { $0.id })
         let orphanedIds = dataIds.subtracting(filesystemIds)
         
         if !orphanedIds.isEmpty {
-            print("Eliminando entradas huérfanas de SwiftData: \(orphanedIds)")
+            print("Removing orphaned entries from SwiftData: \(orphanedIds)")
             let fetchDescriptor = FetchDescriptor<AudioRecording>(predicate: #Predicate { orphanedIds.contains($0.id) })
             do {
                 let dataToDelete = try modelContext.fetch(fetchDescriptor)
@@ -643,38 +662,38 @@ struct ContentView: View {
                 }
                 try modelContext.save()
             } catch {
-                 print("Error limpiando SwiftData: \(error)")
+                 print("Error cleaning SwiftData: \(error)")
             }
         }
     }
     
-    // Función para importar archivos de audio
+    // Function to import audio files
     private func importAudioFile(from sourceURL: URL) {
-        // Crear un ID único para esta grabación importada
+        // Create a unique ID for this imported recording
         let recordingId = UUID()
         
-        // Crear el directorio para la grabación importada
+        // Create the directory for the imported recording
         guard let recordingDirectory = audioManager.createRecordingDirectory(for: recordingId) else {
-            print("Error: No se pudo crear directorio para grabación importada")
+            print("Error: Could not create directory for imported recording")
             return
         }
         
-        // Nombrar archivo de destino como audio.m4a para seguir la convención
+        // Name destination file as audio.m4a to follow convention
         let destinationURL = recordingDirectory.appendingPathComponent("audio.m4a")
         
         do {
-            // Si ya existe un archivo con ese nombre, eliminarlo primero
+            // If a file with that name already exists, delete it first
             if FileManager.default.fileExists(atPath: destinationURL.path) {
                 try FileManager.default.removeItem(at: destinationURL)
             }
             
-            // Copiar el archivo al directorio específico de esta grabación
+            // Copy the file to the specific directory of this recording
             try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
             
-            // Obtener duración del audio
+            // Get audio duration
             let asset = AVURLAsset(url: destinationURL)
             
-            // Usar Task para manejar operaciones asíncronas
+            // Use Task for handling asynchronous operations
             Task {
                 var duration: TimeInterval = 0
                 
@@ -682,17 +701,17 @@ struct ContentView: View {
                     let durationValue = try await asset.load(.duration)
                     duration = CMTimeGetSeconds(durationValue)
                 } catch {
-                    print("Error al obtener la duración: \(error)")
+                    print("Error getting duration: \(error)")
                 }
                 
-                // Crear un nombre legible para la grabación
+                // Create a readable name for the recording
                 let dateFormatter = DateFormatter()
                 dateFormatter.dateStyle = .medium
                 dateFormatter.timeStyle = .short
                 dateFormatter.locale = Locale(identifier: "es_ES")
                 let title = "Imported at \(dateFormatter.string(from: Date()))"
                 
-                // Crear y guardar el nuevo objeto AudioRecording
+                // Create and save the new AudioRecording object
                 DispatchQueue.main.async {
                     let newRecording = AudioRecording(
                         id: recordingId,
@@ -705,17 +724,17 @@ struct ContentView: View {
                     modelContext.insert(newRecording)
                     try? modelContext.save()
                     
-                    // Recargar la lista para mostrar el nuevo archivo
+                    // Reload the list to show the new file
                     loadRecordingsFromFilesystem()
                 }
             }
             
         } catch {
-            print("Error al importar el archivo de audio: \(error)")
+            print("Error importing audio file: \(error)")
         }
     }
     
-    // Función para formatear fecha relativa
+    // Function to format relative date
     private func formatRelativeDate(_ date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
@@ -732,16 +751,27 @@ struct ContentView: View {
     
     // MARK: - Debug Functions
     
-    // Funciones para diagnóstico y desarrollo
+    // Functions for debugging and development
     private func debugRun() {
         print("🔍 Executing debug function...")
-        // Añade aquí código de debug si es necesario
+        // Add any debug code here if needed
     }
     
     private func verifyFilesystem() {
         print("🔍 Verifying file system...")
         audioManager.verifyAndRepairDirectoryStructure()
         audioManager.listAndVerifyRecordings()
+    }
+    
+    // Filter recordings based on search text
+    private func filterRecordings() {
+        if searchText.isEmpty {
+            filteredRecordings = displayableRecordings
+        } else {
+            filteredRecordings = displayableRecordings.filter { recording in
+                recording.title.localizedCaseInsensitiveContains(searchText)
+            }
+        }
     }
 }
 
@@ -778,7 +808,7 @@ struct DisplayableRecordingCell: View {
         .cornerRadius(12)
     }
 
-    // Funciones de formato
+    // Formatting functions
     private func formatRelativeDate(_ date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
@@ -903,7 +933,7 @@ struct APISettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Save") {
-                        // Las claves se guardan automáticamente con @AppStorage
+                        // Keys are automatically saved with @AppStorage
                         dismiss()
                     }
                     .foregroundColor(AppColors.adaptiveText)
@@ -911,7 +941,7 @@ struct APISettingsView: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Close") {
-                        // Restaurar valores originales antes de cerrar
+                        // Restore original values before closing
                         openAIKey = originalOpenAIKey
                         geminiKey = originalGeminiKey
                         anthropicKey = originalAnthropicKey
@@ -921,7 +951,7 @@ struct APISettingsView: View {
                 }
             }
             .onAppear {
-                // Guardar los valores originales al aparecer la vista
+                // Save the original values when the view appears
                 originalOpenAIKey = openAIKey
                 originalGeminiKey = geminiKey
                 originalAnthropicKey = anthropicKey
@@ -931,25 +961,57 @@ struct APISettingsView: View {
     }
 }
 
-// Vista de lista de notas
+// Notes list view
 struct NotesListView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @State private var analyzedNotes: [AnalyzedNote] = []
+    @State private var selectedNote: AnalyzedNote?
+    @State private var showDetail: Bool = false
+    @State private var searchText: String = ""
+    @State private var isLoading: Bool = true
     
     var body: some View {
         NavigationStack {
             ZStack {
-                // Fondo general más claro en modo oscuro
-                colorScheme == .dark ? Color("ListBackground") : Color(UIColor.systemGroupedBackground)
+                // Background color in dark mode
+                Color("Background")
+                    .edgesIgnoringSafeArea(.all)
                 
-                List {
-                    Text("Here you will see your saved notes")
-                        .foregroundColor(.gray)
-                        .listRowBackground(colorScheme == .dark ? Color("ListBackground") : Color(UIColor.systemBackground))
+                if isLoading {
+                    ProgressView("Loading notes...")
+                } else if analyzedNotes.isEmpty {
+                    VStack(spacing: 20) {
+                        Image(systemName: "note.text")
+                            .font(.system(size: 50))
+                            .foregroundColor(.gray)
+                        Text("No analyzed notes found")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                    }
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(analyzedNotes) { note in
+                                NoteCell(note: note)
+                                    .contentShape(Rectangle())
+                                    .shadow(color: colorScheme == .dark ?
+                                            Color.black.opacity(0.08) :
+                                            Color.black.opacity(0.12),
+                                            radius: 3, x: 0, y: 2)
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 2)
+                                    .onTapGesture {
+                                        selectedNote = note
+                                        showDetail = true
+                                    }
+                            }
+                        }
+                        .padding(.vertical)
+                    }
+                    .searchable(text: $searchText, prompt: "Search notes")
+                    .scrollIndicators(.hidden)
                 }
-                .scrollIndicators(.hidden)
-                .background(Color.clear)
-                .listStyle(PlainListStyle())
             }
             .navigationTitle("My Notes")
             .navigationBarTitleDisplayMode(.inline)
@@ -961,8 +1023,394 @@ struct NotesListView: View {
                     .foregroundColor(AppColors.adaptiveText)
                 }
             }
+            .onAppear {
+                loadNotes()
+            }
+            .sheet(isPresented: $showDetail) {
+                if let note = selectedNote {
+                    NoteDetailView(note: note)
+                }
+            }
+            .onChange(of: searchText) { _, newValue in
+                // Filter notes when search text changes
+                filterNotes()
+            }
         }
         .tint(AppColors.adaptiveTint)
+    }
+    
+    // Filter notes based on search text
+    private func filterNotes() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let notes = loadNotesFromFilesystem()
+            
+            // Filter by search term if it exists
+            let filteredNotes = searchText.isEmpty ? notes : notes.filter { 
+                $0.title.localizedCaseInsensitiveContains(searchText) || 
+                $0.summary.localizedCaseInsensitiveContains(searchText)
+            }
+            
+            // Sort by date, most recent first
+            let sortedNotes = filteredNotes.sorted { $0.created > $1.created }
+            
+            DispatchQueue.main.async {
+                self.analyzedNotes = sortedNotes
+            }
+        }
+    }
+    
+    // Load notes
+    private func loadNotes() {
+        isLoading = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let notes = loadNotesFromFilesystem()
+            
+            // Filter by search term if it exists
+            let filteredNotes = searchText.isEmpty ? notes : notes.filter { 
+                $0.title.localizedCaseInsensitiveContains(searchText) || 
+                $0.summary.localizedCaseInsensitiveContains(searchText)
+            }
+            
+            // Sort by date, most recent first
+            let sortedNotes = filteredNotes.sorted { $0.created > $1.created }
+            
+            DispatchQueue.main.async {
+                self.analyzedNotes = sortedNotes
+                self.isLoading = false
+            }
+        }
+    }
+    
+    // Function to load notes from filesystem
+    private func loadNotesFromFilesystem() -> [AnalyzedNote] {
+        var notes: [AnalyzedNote] = []
+        
+        // Get documents directory
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("❌ Could not access documents directory")
+            return []
+        }
+        
+        // Build path to Hera/VoiceNotes
+        let heraDirectory = documentsDirectory.appendingPathComponent("Hera", isDirectory: true)
+        let voiceNotesDirectory = heraDirectory.appendingPathComponent("VoiceNotes", isDirectory: true)
+        
+        // Verify if directory exists
+        guard FileManager.default.fileExists(atPath: voiceNotesDirectory.path) else {
+            print("❌ VoiceNotes directory does not exist: \(voiceNotesDirectory.path)")
+            // Try listing directories in the Hera folder for diagnostics
+            do {
+                let heraContents = try FileManager.default.contentsOfDirectory(at: heraDirectory, includingPropertiesForKeys: nil)
+                print("📁 Hera directory contents:")
+                for item in heraContents {
+                    print("   - \(item.lastPathComponent)")
+                }
+            } catch {
+                print("❌ Error listing Hera contents: \(error)")
+            }
+            return []
+        }
+        
+        print("📁 Loading notes from: \(voiceNotesDirectory.path)")
+        
+        do {
+            // Get all folders in the VoiceNotes directory
+            let folderURLs = try FileManager.default.contentsOfDirectory(at: voiceNotesDirectory, includingPropertiesForKeys: nil)
+            
+            print("📁 Found \(folderURLs.count) folders in VoiceNotes")
+            
+            for folderURL in folderURLs {
+                // For each folder, check if analysis.json file exists
+                let analysisURL = folderURL.appendingPathComponent("analysis.json")
+                
+                if FileManager.default.fileExists(atPath: analysisURL.path) {
+                    print("📄 Found analysis.json file in: \(folderURL.lastPathComponent)")
+                    
+                    do {
+                        // Read file content
+                        let analysisData = try Data(contentsOf: analysisURL)
+                        print("📊 analysis.json file size: \(analysisData.count) bytes")
+                        
+                        // Print raw content for debugging
+                        if let rawContent = String(data: analysisData, encoding: .utf8) {
+                            print("📝 Raw analysis.json content (first 200 characters): \(String(rawContent.prefix(200)))...")
+                        }
+                        
+                        // Try to decode the JSON
+                        if let content = try? JSONSerialization.jsonObject(with: analysisData) as? [String: Any],
+                           let choices = content["choices"] as? [[String: Any]],
+                           let firstChoice = choices.first,
+                           let message = firstChoice["message"] as? [String: Any],
+                           let messageContent = message["content"] as? String {
+                            
+                            // Print content for debugging
+                            print("📄 Message content: \(messageContent.prefix(200))...")
+                            
+                            // Try to extract JSON object from content
+                            if let jsonStart = messageContent.range(of: "{"),
+                               let jsonEnd = messageContent.range(of: "}", options: .backwards) {
+                                
+                                let jsonRange = jsonStart.lowerBound..<jsonEnd.upperBound
+                                let jsonString = String(messageContent[jsonRange])
+                                
+                                print("📄 Extracted JSON: \(jsonString.prefix(200))...")
+                                
+                                if let jsonData = jsonString.data(using: .utf8),
+                                   let analysisResult = try? JSONDecoder().decode(AnalysisResult.self, from: jsonData) {
+                                    
+                                    print("✅ Successful decoding! Title: \(analysisResult.suggestedTitle ?? "Untitled")")
+                                    print("✅ Summary length: \(analysisResult.summary.count) characters")
+                                    
+                                    // Extract file metadata to get date
+                                    let attributes = try FileManager.default.attributesOfItem(atPath: analysisURL.path)
+                                    let creationDate = attributes[.creationDate] as? Date ?? Date()
+                                    
+                                    // Create analyzed note object
+                                    let note = AnalyzedNote(
+                                        id: UUID(), // Using UUID as unique identifier
+                                        title: analysisResult.suggestedTitle ?? "Untitled Note",
+                                        summary: analysisResult.summary,
+                                        folderURL: folderURL,
+                                        created: creationDate
+                                    )
+                                    
+                                    notes.append(note)
+                                } else {
+                                    print("❌ Error decoding JSON to AnalysisResult. JSON: \(jsonString.prefix(100))...")
+                                    
+                                    // Try to identify the decoding problem
+                                    if let jsonData = jsonString.data(using: .utf8) {
+                                        do {
+                                            let _ = try JSONDecoder().decode(AnalysisResult.self, from: jsonData)
+                                        } catch {
+                                            print("⚠️ Specific error: \(error)")
+                                            
+                                            // Try to print JSON keys for diagnosis
+                                            if let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                                                print("📋 Keys in JSON: \(json.keys)")
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                print("❌ Could not find JSON object in content")
+                                print("⚠️ Message content without correct JSON: \(messageContent.prefix(100))...")
+                            }
+                        } else {
+                            print("❌ Error processing analysis.json file content")
+                            
+                            // Try to understand JSON structure
+                            if let anyJson = try? JSONSerialization.jsonObject(with: analysisData) {
+                                print("⚠️ JSON structure: \(type(of: anyJson))")
+                                if let dict = anyJson as? [String: Any] {
+                                    print("⚠️ Keys in JSON: \(dict.keys.joined(separator: ", "))")
+                                }
+                            }
+                        }
+                    } catch {
+                        print("❌ Error reading analysis.json file: \(error)")
+                    }
+                } else {
+                    print("⚠️ analysis.json file not found in: \(folderURL.lastPathComponent)")
+                }
+            }
+        } catch {
+            print("❌ Error listing folders: \(error)")
+        }
+        
+        print("📊 Total notes loaded: \(notes.count)")
+        return notes
+    }
+    
+    // Format date
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}
+
+// Cell to display a note
+struct NoteCell: View {
+    let note: AnalyzedNote
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(note.title)
+                    .font(.headline)
+                    .foregroundColor(AppColors.adaptiveText)
+                
+                Text(formatDate(note.created))
+                    .font(.caption)
+                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .secondary)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(colorScheme == .dark ? Color("CardBackground") : .white)
+        .cornerRadius(12)
+    }
+    
+    // Format date
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}
+
+// Note detail view
+struct NoteDetailView: View {
+    let note: AnalyzedNote
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Debug information
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Debug Info:")
+                            .font(.headline)
+                            .foregroundColor(.red)
+                        
+                        Text("Title: \(note.title)")
+                            .font(.caption)
+                            .foregroundColor(.primary)
+                        
+                        Text("Summary length: \(note.summary.count) chars")
+                            .font(.caption)
+                            .foregroundColor(.primary)
+                        
+                        Text("Created: \(formatDate(note.created))")
+                            .font(.caption)
+                            .foregroundColor(.primary)
+                    }
+                    .padding()
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    
+                    Divider()
+                        .padding(.horizontal)
+                    
+                    // Note content with high contrast colors
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Note Content:")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        if note.summary.isEmpty {
+                            Text("The note is empty")
+                                .italic()
+                                .foregroundColor(.red)
+                                .padding(.top, 8)
+                        } else {
+                            Text(note.summary)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                                .padding(.top, 8)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.white.opacity(colorScheme == .dark ? 0.1 : 0.8))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                }
+                .padding(.vertical)
+            }
+            .background(colorScheme == .dark ? Color.black : Color(UIColor.systemBackground))
+            .navigationTitle(note.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        shareNote()
+                    }) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                    .foregroundColor(AppColors.adaptiveText)
+                }
+            }
+        }
+    }
+    
+    // Share note
+    private func shareNote() {
+        let content = "\(note.title)\n\n\(note.summary)"
+        let activityVC = UIActivityViewController(activityItems: [content], applicationActivities: nil)
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootViewController = windowScene.windows.first?.rootViewController {
+            rootViewController.present(activityVC, animated: true)
+        }
+    }
+    
+    // Format date
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}
+
+// Model for analyzed notes
+struct AnalyzedNote: Identifiable {
+    let id: UUID
+    let title: String
+    let summary: String
+    let folderURL: URL
+    let created: Date
+}
+
+// Custom search bar component
+struct SearchBar: View {
+    @Binding var text: String
+    var placeholder: String
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .gray)
+                .padding(.leading, 8)
+            
+            TextField(placeholder, text: $text)
+                .padding(7)
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : .primary)
+                .disableAutocorrection(true)
+                .autocapitalization(.none)
+            
+            if !text.isEmpty {
+                Button(action: {
+                    text = ""
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .gray)
+                        .padding(.trailing, 8)
+                }
+            }
+        }
+        .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color(.systemGray6))
+        .cornerRadius(10)
     }
 }
 
@@ -972,6 +1420,6 @@ struct NotesListView: View {
         return ContentView()
             .modelContainer(modelContainer)
     } catch {
-        return Text("Error al crear el ModelContainer: \(error.localizedDescription)")
+        return Text("Error creating ModelContainer: \(error.localizedDescription)")
     }
 }
