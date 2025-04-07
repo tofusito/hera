@@ -375,11 +375,16 @@ struct PlaybackView: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
+            // Fondo principal adaptativo
+            AppColors.background
+                .ignoresSafeArea()
+                
             // Contenido principal (área scrolleable)
             VStack(spacing: 16) {
                 // Título de la grabación (parte superior)
                 Text(recording.title)
                     .font(.headline)
+                    .foregroundColor(AppColors.primaryText)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.horizontal)
@@ -433,9 +438,10 @@ struct PlaybackView: View {
                     }) {
                         ZStack {
                             Circle()
-                                .fill(Color.blue.gradient)
+                                .fill(AppColors.accent.gradient)
                                 .frame(width: 60, height: 60)
-                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.3), 
+                                        radius: 5, x: 0, y: 3)
                             
                             Image(systemName: "note.text.badge.plus")
                                 .font(.system(size: 22, weight: .medium))
@@ -446,7 +452,9 @@ struct PlaybackView: View {
                                 .font(.caption)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(Color(UIColor.systemBackground).opacity(0.9))
+                                .background(colorScheme == .dark ? 
+                                           Color(UIColor.systemBackground).opacity(0.7) : 
+                                           Color(UIColor.systemBackground).opacity(0.9))
                                 .cornerRadius(8)
                                 .offset(y: -45)
                                 .opacity(isShowingTooltip ? 1 : 0)
@@ -487,7 +495,9 @@ struct PlaybackView: View {
                     
                     ProgressView("Loading audio...")
                         .padding()
-                        .background(Color(UIColor.systemBackground))
+                        .background(colorScheme == .dark ? 
+                                   Color(UIColor.systemBackground).opacity(0.8) : 
+                                   Color(UIColor.systemBackground))
                         .cornerRadius(10)
                 }
                 
@@ -502,7 +512,9 @@ struct PlaybackView: View {
                             .padding(.top, 8)
                     }
                     .padding()
-                    .background(Color(UIColor.systemBackground))
+                    .background(colorScheme == .dark ? 
+                               Color(UIColor.systemBackground).opacity(0.8) : 
+                               Color(UIColor.systemBackground))
                     .cornerRadius(10)
                 }
                 
@@ -517,7 +529,9 @@ struct PlaybackView: View {
                             .padding(.top, 8)
                     }
                     .padding()
-                    .background(Color(UIColor.systemBackground))
+                    .background(colorScheme == .dark ? 
+                               Color(UIColor.systemBackground).opacity(0.8) : 
+                               Color(UIColor.systemBackground))
                     .cornerRadius(10)
                 }
             }
@@ -704,8 +718,9 @@ struct PlaybackView: View {
                     .padding(.horizontal, 10)
                     .overlay(
                         RoundedRectangle(cornerRadius: 15)
-                            .stroke(Color.blue, lineWidth: 1)
+                            .stroke(AppColors.accent, lineWidth: 1)
                     )
+                    .foregroundColor(AppColors.primaryText)
                 }
                 .padding(.bottom, 20)
             }
@@ -747,13 +762,17 @@ struct PlaybackView: View {
                 if let transcription = recording.transcription {
                     Text("Transcription:")
                         .font(.headline)
+                        .foregroundColor(AppColors.primaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     Text(transcription)
                         .font(.body)
+                        .foregroundColor(AppColors.primaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
-                        .background(Color(UIColor.secondarySystemBackground))
+                        .background(colorScheme == .dark ? 
+                                   Color("CardBackground").opacity(0.7) : 
+                                   Color(UIColor.secondarySystemBackground))
                         .cornerRadius(8)
                 }
             } else {
@@ -763,18 +782,22 @@ struct PlaybackView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Image(systemName: "text.bubble")
-                                .foregroundColor(.blue)
+                                .foregroundColor(Color("AccentColor"))
                             Text("Summary")
                                 .font(.headline)
+                                .foregroundColor(Color("PrimaryText"))
                         }
                         
                         ZStack(alignment: .bottomTrailing) {
                             Text(analysisData.summary)
+                                .foregroundColor(Color("PrimaryText"))
                                 .padding()
                                 .padding(.trailing, 80)
                                 .padding(.bottom, 10)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color(UIColor.secondarySystemBackground))
+                                .background(colorScheme == .dark ? 
+                                           Color("CardBackground").opacity(0.7) : 
+                                           Color(UIColor.secondarySystemBackground))
                                 .cornerRadius(8)
                             
                             // Botón minimalista para exportar a Notas
@@ -789,7 +812,7 @@ struct PlaybackView: View {
                                 }
                                 .padding(6)
                                 .background(Color("AccentColor").opacity(0.1))
-                                .foregroundColor(AppColors.adaptiveText)
+                                .foregroundColor(Color("PrimaryText"))
                                 .cornerRadius(8)
                             }
                             .padding(12)
@@ -802,26 +825,30 @@ struct PlaybackView: View {
                         Button(action: { showEvents.toggle() }) {
                             HStack {
                                 Image(systemName: "calendar")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(colorScheme == .dark ? .gray.opacity(0.9) : .gray)
                                 Text("Events")
                                     .font(.headline)
+                                    .foregroundColor(Color("PrimaryText"))
                                 Spacer()
                                 if let events = analysisData.events {
                                     Text("\(events.count)")
                                         .font(.footnote)
+                                        .foregroundColor(Color("PrimaryText").opacity(0.8))
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 2)
-                                        .background(Color.gray.opacity(0.2))
+                                        .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.2))
                                         .cornerRadius(10)
                                 } else {
                                     Text("0")
                                         .font(.footnote)
+                                        .foregroundColor(Color("PrimaryText").opacity(0.8))
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 2)
-                                        .background(Color.gray.opacity(0.2))
+                                        .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.2))
                                         .cornerRadius(10)
                                 }
                                 Image(systemName: showEvents ? "chevron.up" : "chevron.down")
+                                    .foregroundColor(Color("PrimaryText").opacity(0.7))
                             }
                             .padding(.vertical, 5)
                         }
@@ -832,9 +859,12 @@ struct PlaybackView: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(event.name)
                                             .fontWeight(.medium)
+                                            .foregroundColor(Color("PrimaryText"))
                                         Text(event.date)
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(colorScheme == .dark ? 
+                                                           Color.white.opacity(0.7) : 
+                                                           Color.secondary)
                                     }
                                     Spacer()
                                     
@@ -851,18 +881,22 @@ struct PlaybackView: View {
                                         .padding(.vertical, 6)
                                         .padding(.horizontal, 10)
                                         .background(Color("AccentColor").opacity(0.1))
-                                        .foregroundColor(AppColors.adaptiveText)
+                                        .foregroundColor(Color("PrimaryText"))
                                         .cornerRadius(15)
                                     }
                                 }
                                 .padding()
-                                .background(Color(UIColor.secondarySystemBackground).opacity(0.7))
+                                .background(colorScheme == .dark ? 
+                                           Color("CardBackground").opacity(0.5) : 
+                                           Color(UIColor.secondarySystemBackground).opacity(0.7))
                                 .cornerRadius(8)
                             }
                         } else if showEvents {
                             Text("No events found in this recording")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(colorScheme == .dark ? 
+                                               Color.white.opacity(0.7) : 
+                                               Color.secondary)
                                 .padding()
                         }
                     }
@@ -873,26 +907,30 @@ struct PlaybackView: View {
                         Button(action: { showReminders.toggle() }) {
                             HStack {
                                 Image(systemName: "list.bullet.clipboard")
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(colorScheme == .dark ? .orange.opacity(0.9) : .orange)
                                 Text("Reminders")
                                     .font(.headline)
+                                    .foregroundColor(Color("PrimaryText"))
                                 Spacer()
                                 if let reminders = analysisData.reminders {
                                     Text("\(reminders.count)")
                                         .font(.footnote)
+                                        .foregroundColor(Color("PrimaryText").opacity(0.8))
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 2)
-                                        .background(Color.orange.opacity(0.2))
+                                        .background(Color.orange.opacity(colorScheme == .dark ? 0.3 : 0.2))
                                         .cornerRadius(10)
                                 } else {
                                     Text("0")
                                         .font(.footnote)
+                                        .foregroundColor(Color("PrimaryText").opacity(0.8))
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 2)
-                                        .background(Color.orange.opacity(0.2))
+                                        .background(Color.orange.opacity(colorScheme == .dark ? 0.3 : 0.2))
                                         .cornerRadius(10)
                                 }
                                 Image(systemName: showReminders ? "chevron.up" : "chevron.down")
+                                    .foregroundColor(Color("PrimaryText").opacity(0.7))
                             }
                             .padding(.vertical, 5)
                         }
@@ -903,10 +941,13 @@ struct PlaybackView: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(reminder.name)
                                             .fontWeight(.medium)
+                                            .foregroundColor(Color("PrimaryText"))
                                         
                                         Text(reminder.date)
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(colorScheme == .dark ? 
+                                                           Color.white.opacity(0.7) : 
+                                                           Color.secondary)
                                     }
                                     Spacer()
                                     
@@ -921,16 +962,25 @@ struct PlaybackView: View {
                                             Text("Add")
                                                 .font(.subheadline)
                                         }
+                                        .padding(.vertical, 6)
+                                        .padding(.horizontal, 10)
+                                        .background(Color("AccentColor").opacity(0.1))
+                                        .foregroundColor(Color("PrimaryText"))
+                                        .cornerRadius(15)
                                     }
                                 }
                                 .padding(.vertical, 8)
                                 .padding(.horizontal)
-                                .background(Color(UIColor.secondarySystemBackground))
+                                .background(colorScheme == .dark ? 
+                                           Color("CardBackground").opacity(0.5) : 
+                                           Color(UIColor.secondarySystemBackground))
                                 .cornerRadius(8)
                             }
                         } else if showReminders {
                             Text("No reminders found in this recording")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(colorScheme == .dark ? 
+                                               Color.white.opacity(0.7) : 
+                                               Color.secondary)
                                 .padding()
                         }
                     }
@@ -943,8 +993,10 @@ struct PlaybackView: View {
                         }) {
                             HStack {
                                 Image(systemName: isShowingTranscription ? "chevron.up" : "chevron.down")
+                                    .foregroundColor(Color("PrimaryText").opacity(0.7))
                                 Text(isShowingTranscription ? "Hide original transcription" : "View original transcription")
                                     .font(.caption)
+                                    .foregroundColor(Color("PrimaryText").opacity(0.8))
                             }
                             .padding(.vertical, 10)
                         }
@@ -952,22 +1004,29 @@ struct PlaybackView: View {
                         if isShowingTranscription {
                             Text(transcription)
                                 .font(.body)
+                                .foregroundColor(Color("PrimaryText"))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding()
-                                .background(Color(UIColor.tertiarySystemBackground))
+                                .background(colorScheme == .dark ? 
+                                           Color("CardBackground").opacity(0.3) : 
+                                           Color(UIColor.tertiarySystemBackground))
                                 .cornerRadius(8)
                         }
                     } else {
                         // Show raw analysis if it couldn't be decoded
                         Text("Analysis:")
                             .font(.headline)
+                            .foregroundColor(Color("PrimaryText"))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
                         Text(recording.analysis ?? "")
                             .font(.body)
+                            .foregroundColor(Color("PrimaryText"))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding()
-                            .background(Color(UIColor.secondarySystemBackground))
+                            .background(colorScheme == .dark ? 
+                                       Color("CardBackground").opacity(0.5) : 
+                                       Color(UIColor.secondarySystemBackground))
                             .cornerRadius(8)
                     }
                 }
@@ -999,7 +1058,7 @@ struct PlaybackView: View {
                         .overlay(
                             Image(systemName: audioManager.isPlaying ? "pause.fill" : "play.fill")
                                 .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(colorScheme == .dark ? Color.white : Color.white)
+                                .foregroundColor(.white)
                                 .offset(x: audioManager.isPlaying ? 0 : 2)
                         )
                 }
@@ -1015,7 +1074,7 @@ struct PlaybackView: View {
                         seekToPosition(playbackProgress)
                     }
                 }
-                .tint(Color(.systemBlue))
+                .tint(Color("AccentColor"))
                 .padding(.vertical, 2)
                 .disabled(!audioManager.isPlayerReady)
                 
@@ -1854,7 +1913,7 @@ struct PlaybackBarsView: View {
                 Circle()
                     .fill(colorScheme == .dark ? 
                           (isPlaying ? Color(white: 0.9) : Color.gray.opacity(0.3)) : 
-                          (isPlaying ? Color.black : Color.gray.opacity(0.3)))
+                          (isPlaying ? Color("PrimaryText") : Color.gray.opacity(0.3)))
                     .frame(width: 50, height: 50)
                     .scaleEffect(scales[index])
                     .animation(isPlaying ? .easeInOut(duration: 0.6) : nil, value: scales[index])

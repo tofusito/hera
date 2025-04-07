@@ -1441,30 +1441,37 @@ struct NoteDetailView: View {
             Color("Background").ignoresSafeArea()
             
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Título principal (suggestedTitle)
-                    HStack {
-                        Image(systemName: "doc.text")
-                            .font(.title)
-                            .foregroundColor(AppColors.adaptiveTint)
+                VStack(alignment: .leading, spacing: 20) {
+                    // Encabezado con título
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Título principal (suggestedTitle)
+                        HStack {
+                            Image(systemName: "doc.text")
+                                .font(.title)
+                                .foregroundColor(AppColors.adaptiveTint)
+                            
+                            Text(note.suggestedTitle.isEmpty ? note.title : note.suggestedTitle)
+                                .font(.title)
+                                .bold()
+                                .foregroundColor(AppColors.adaptiveText)
+                        }
                         
-                        Text(note.suggestedTitle.isEmpty ? note.title : note.suggestedTitle)
-                            .font(.title)
-                            .bold()
-                            .foregroundColor(AppColors.adaptiveText)
+                        // Fecha destacada
+                        HStack {
+                            Image(systemName: "calendar")
+                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                            
+                            Text("Fecha: \(formatDate(note.created))")
+                                .font(.subheadline)
+                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                        }
                     }
-                    .padding(.top)
-                    
-                    // Fecha destacada
-                    HStack {
-                        Image(systemName: "calendar")
-                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
-                        
-                        Text("Fecha: \(formatDate(note.created))")
-                            .font(.subheadline)
-                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
-                    }
-                    .padding(.top, 2)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(colorScheme == .dark ? Color("CardBackground").opacity(0.6) : Color.white.opacity(0.8))
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.08 : 0.12), radius: 3, x: 0, y: 2)
                     
                     // Original title (si hay título sugerido y es diferente)
                     if !note.suggestedTitle.isEmpty && note.suggestedTitle != note.title {
@@ -1476,35 +1483,57 @@ struct NoteDetailView: View {
                                 .font(.headline)
                                 .foregroundColor(colorScheme == .dark ? .green.opacity(0.8) : .green)
                         }
-                        .padding(.top, 4)
-                    }
-                    
-                    Divider()
                         .padding(.vertical, 8)
+                    }
                     
                     // Warning if empty
                     if displaySummary.isEmpty {
-                        Text("No hay contenido disponible para esta nota")
-                            .font(.headline)
-                            .foregroundColor(.red)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05))
-                            .cornerRadius(12)
+                        VStack(alignment: .center, spacing: 16) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 36))
+                                .foregroundColor(.red.opacity(0.8))
+                            
+                            Text("No hay contenido disponible para esta nota")
+                                .font(.headline)
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05))
+                        )
                     } else {
-                        // Texto del contenido completo (summary)
-                        Text(displaySummary)
-                            .foregroundColor(AppColors.adaptiveText)
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(colorScheme == .dark ? Color("CardBackground") : Color.white)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(colorScheme == .dark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1)
-                            )
-                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.08 : 0.12), radius: 3, x: 0, y: 2)
-                            .textSelection(.enabled)
+                        // Tarjeta de contenido con título
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "text.bubble")
+                                    .foregroundColor(AppColors.adaptiveTint)
+                                
+                                Text("Contenido")
+                                    .font(.headline)
+                                    .foregroundColor(AppColors.adaptiveText)
+                            }
+                            .padding(.bottom, 4)
+                            
+                            // Texto del contenido completo (summary)
+                            Text(displaySummary)
+                                .foregroundColor(AppColors.adaptiveText)
+                                .lineSpacing(5)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .textSelection(.enabled)
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(colorScheme == .dark ? Color("CardBackground") : Color.white)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(colorScheme == .dark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.08 : 0.12), radius: 3, x: 0, y: 2)
                         
                         // Botón para copiar al portapapeles
                         Button(action: {
@@ -1523,32 +1552,34 @@ struct NoteDetailView: View {
                         }) {
                             HStack {
                                 Image(systemName: "doc.on.doc")
+                                    .font(.system(size: 15))
                                 Text("Copiar al portapapeles")
+                                    .fontWeight(.medium)
                             }
-                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : AppColors.adaptiveTint)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
+                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : .white)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 20)
                             .background(
                                 Capsule()
-                                    .fill(colorScheme == .dark ? Color.blue.opacity(0.2) : Color.blue.opacity(0.08))
+                                    .fill(Color.blue.gradient)
                             )
-                            .overlay(
-                                Capsule()
-                                    .stroke(colorScheme == .dark ? Color.blue.opacity(0.4) : Color.blue.opacity(0.25), lineWidth: 1)
-                            )
-                            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                            .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                         }
+                        .padding(.vertical, 10)
                         .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 16)
                         .overlay(
                             Text("¡Copiado!")
                                 .font(.caption)
+                                .fontWeight(.semibold)
+                                .padding(8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(colorScheme == .dark ? Color.blue.opacity(0.3) : Color.blue.opacity(0.15))
+                                )
                                 .foregroundColor(colorScheme == .dark ? .white : .black)
-                                .padding(6)
-                                .background(colorScheme == .dark ? Color.blue.opacity(0.3) : Color.blue.opacity(0.15))
-                                .cornerRadius(8)
-                                .offset(y: -30)
+                                .offset(y: -45)
                                 .opacity(showCopiedMessage ? 1 : 0)
+                                .animation(.easeInOut(duration: 0.2), value: showCopiedMessage)
                         )
                     }
                 }
