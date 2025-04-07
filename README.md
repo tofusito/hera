@@ -5,7 +5,7 @@
 # 🐾 Hera – Your Voice, Turned Into Action
 
 <p align="center">
-  <img src="Resources/Icon/icon.png" alt="Hera Logo" width="150" />
+  <img src="Resources/Icon/icon_resource.png" alt="Hera Logo" width="150" />
 </p>
 
 <p align="center">
