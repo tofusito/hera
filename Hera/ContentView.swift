@@ -77,8 +77,8 @@ struct DisplayableRecording: Identifiable {
             do {
                 // Leer análisis desde el archivo
                 let analysisData = try Data(contentsOf: analysisFileURL)
-                if let json = try JSONSerialization.jsonObject(with: analysisData, options: []) as? [String: Any],
-                   let choices = json["choices"] as? [[String: Any]],
+                if let jsonObj = try JSONSerialization.jsonObject(with: analysisData) as? [String: Any],
+                   let choices = jsonObj["choices"] as? [[String: Any]],
                    let firstChoice = choices.first,
                    let message = firstChoice["message"] as? [String: Any],
                    let content = message["content"] as? String {
@@ -1152,27 +1152,140 @@ struct NotesListView: View {
                     print("📄 Procesando archivo: \(analysisURL.lastPathComponent) en \(folderURL.lastPathComponent)")
                     
                     do {
-                        // Read file content
+                        // Lee el contenido completo del archivo JSON
                         let analysisData = try Data(contentsOf: analysisURL)
-                        let rawContent = String(data: analysisData, encoding: .utf8) ?? ""
+                        let fileContent = String(data: analysisData, encoding: .utf8) ?? ""
                         
-                        print("📄 Tamaño del archivo: \(analysisData.count) bytes")
+                        print("📄 Contenido del JSON (primeros 100 chars): \(fileContent.prefix(100))")
                         
-                        // Crear una nota única para cada archivo
-                        let noteId = UUID()
+                        // Título por defecto con el ID de la carpeta
+                        var title = "Nota \(folderURL.lastPathComponent)"
+                        var suggestedTitle = ""
+                        var summary = ""
                         
-                        // Crear nota con los datos básicos
-                        let note = AnalyzedNote(
-                            id: noteId,
-                            title: "Nota \(folderURL.lastPathComponent)",
-                            summary: rawContent,
-                            folderURL: folderURL,
-                            created: creationDate,
-                            suggestedTitle: "🔍 Transcripción"
-                        )
-                        
-                        notes.append(note)
-                        
+                        // Intenta parsear el JSON directamente
+                        do {
+                            let jsonObj = try JSONSerialization.jsonObject(with: analysisData) as? [String: Any]
+                            
+                            if let jsonObj = jsonObj {
+                                print("📄 JSON parseado correctamente")
+                                
+                                // 1. Extraer título sugerido directamente del JSON
+                                if let extractedTitle = jsonObj["suggestedTitle"] as? String, !extractedTitle.isEmpty {
+                                    suggestedTitle = extractedTitle
+                                    print("📄 Título sugerido encontrado: \(suggestedTitle)")
+                                }
+                                
+                                // 2. Extraer resumen directamente del JSON
+                                if let extractedSummary = jsonObj["summary"] as? String, !extractedSummary.isEmpty {
+                                    summary = extractedSummary
+                                    print("📄 Resumen encontrado (primeros 30 chars): \(summary.prefix(30))")
+                                }
+                                
+                                // 3. Si no se encontraron los campos directamente, buscar en el formato de OpenAI
+                                if (suggestedTitle.isEmpty || summary.isEmpty),
+                                   let choices = jsonObj["choices"] as? [[String: Any]],
+                                   let firstChoice = choices.first,
+                                   let message = firstChoice["message"] as? [String: Any],
+                                   let content = message["content"] as? String {
+                                    
+                                    print("📄 Encontrado contenido en formato OpenAI")
+                                    
+                                    // Si no hay resumen, usar el contenido
+                                    if summary.isEmpty {
+                                        summary = content
+                                    }
+                                    
+                                    // Buscar un suggestedTitle en el contenido si no se encontró
+                                    if suggestedTitle.isEmpty {
+                                        // Usar expresión regular para encontrar el título sugerido
+                                        if let range = content.range(of: "\"suggestedTitle\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
+                                            let extractedText = String(content[range])
+                                            if let startQuote = extractedText.range(of: "\":", options: .backwards)?.upperBound,
+                                               let endQuote = extractedText.range(of: "\"", options: .backwards)?.lowerBound,
+                                               startQuote < endQuote {
+                                                suggestedTitle = String(extractedText[startQuote..<endQuote])
+                                                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                                                    .replacingOccurrences(of: "\"", with: "")
+                                                print("📄 Título sugerido extraído del contenido: \(suggestedTitle)")
+                                            }
+                                        } else if let range = content.range(of: "suggestedTitle:\\s*([^\\n]*)", options: .regularExpression) {
+                                            let extractedText = String(content[range])
+                                            if let colonIndex = extractedText.firstIndex(of: ":") {
+                                                let startIndex = extractedText.index(after: colonIndex)
+                                                suggestedTitle = String(extractedText[startIndex...])
+                                                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                                                    .replacingOccurrences(of: "\"", with: "")
+                                                print("📄 Título sugerido extraído del contenido (formato alternativo): \(suggestedTitle)")
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Si aún no se ha encontrado un título sugerido, usar un valor predeterminado
+                                if suggestedTitle.isEmpty {
+                                    let defaultTitle = jsonObj["suggestedTitle"] as? String
+                                    suggestedTitle = defaultTitle != nil && !defaultTitle!.isEmpty ? defaultTitle! : "💬 Transcripción"
+                                }
+                                
+                                // Crear una nota con los datos extraídos
+                                let note = AnalyzedNote(
+                                    id: UUID(),
+                                    title: title,
+                                    summary: fileContent,         // Guardar contenido completo para preservar
+                                    folderURL: folderURL,
+                                    created: creationDate,
+                                    suggestedTitle: suggestedTitle,
+                                    processedSummary: summary     // Resumen procesado (si existe)
+                                )
+                                
+                                notes.append(note)
+                                continue
+                            }
+                        } catch {
+                            print("⚠️ No se pudo parsear el JSON del archivo analysis.json")
+                            
+                            // Si no se pudo parsear el JSON, intentar extraer con expresiones regulares
+                            if let suggestedTitleMatch = fileContent.range(of: "\"suggestedTitle\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
+                                let suggestedTitleText = String(fileContent[suggestedTitleMatch])
+                                if let startQuote = suggestedTitleText.range(of: "\":", options: .backwards)?.upperBound,
+                                   let endQuote = suggestedTitleText.range(of: "\"", options: .backwards)?.lowerBound,
+                                   startQuote < endQuote {
+                                    suggestedTitle = String(suggestedTitleText[startQuote..<endQuote])
+                                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                                    print("📄 Título sugerido extraído con regex: \(suggestedTitle)")
+                                }
+                            }
+                            
+                            if let summaryMatch = fileContent.range(of: "\"summary\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
+                                let summaryText = String(fileContent[summaryMatch])
+                                if let startQuote = summaryText.range(of: "\":", options: .backwards)?.upperBound,
+                                   let endQuote = summaryText.range(of: "\"", options: .backwards)?.lowerBound,
+                                   startQuote < endQuote {
+                                    summary = String(summaryText[startQuote..<endQuote])
+                                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                                    print("📄 Resumen extraído con regex (primeros 30 chars): \(summary.prefix(30))")
+                                }
+                            }
+                            
+                            if suggestedTitle.isEmpty {
+                                suggestedTitle = "💬 Transcripción"
+                            }
+                            
+                            // Crear nota con los datos extraídos mediante regex
+                            let note = AnalyzedNote(
+                                id: UUID(),
+                                title: title,
+                                summary: fileContent,
+                                folderURL: folderURL,
+                                created: creationDate,
+                                suggestedTitle: suggestedTitle,
+                                processedSummary: summary.isEmpty ? nil : summary
+                            )
+                            
+                            notes.append(note)
+                            continue
+                        }
                     } catch {
                         print("❌ Error reading analysis.json file: \(error)")
                     }
@@ -1185,11 +1298,12 @@ struct NotesListView: View {
                             if !transcript.isEmpty {
                                 let note = AnalyzedNote(
                                     id: UUID(),
-                                    title: "Transcript " + folderURL.lastPathComponent,
+                                    title: "Transcripción \(folderURL.lastPathComponent)",
                                     summary: transcript,
                                     folderURL: folderURL,
                                     created: creationDate,
-                                    suggestedTitle: "Transcripción"
+                                    suggestedTitle: "💬 Transcripción simple",
+                                    processedSummary: transcript // Para transcripciones simples, el contenido ya es texto plano
                                 )
                                 
                                 notes.append(note)
@@ -1215,54 +1329,101 @@ struct NoteDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var showCopiedMessage: Bool = false
     
-    // Procesamiento del contenido para garantizar que se muestre correctamente
-    private var cleanedContent: String {
-        // Si es JSON, intentar extraer solo el texto relevante
+    // Extraer resumen limpio para visualización
+    private var displaySummary: String {
+        // Si es JSON, intentar múltiples formatos
         if note.summary.starts(with: "{") {
             do {
-                // Intentar parsear como JSON para extraer contenido
                 if let jsonData = note.summary.data(using: .utf8),
                    let jsonObj = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
                     
-                    // Intentar extraer primero de "summary" si existe
-                    if let summary = jsonObj["summary"] as? String {
-                        return summary
+                    // 1. Intentar extraer directamente del campo "summary"
+                    if let summaryValue = jsonObj["summary"] as? String, !summaryValue.isEmpty {
+                        return summaryValue
                     }
                     
-                    // Luego intentar desde choices (formato OpenAI)
+                    // 2. Buscar en formato de respuesta de OpenAI
                     if let choices = jsonObj["choices"] as? [[String: Any]],
                        let firstChoice = choices.first,
                        let message = firstChoice["message"] as? [String: Any],
                        let content = message["content"] as? String {
-                        return content
+                        
+                        // 2.1 Buscar el campo "summary" dentro del contenido
+                        if let range = content.range(of: "\"summary\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
+                            let extractedText = String(content[range])
+                            if let startQuote = extractedText.range(of: "\":", options: .backwards)?.upperBound,
+                               let endQuote = extractedText.range(of: "\"", options: .backwards)?.lowerBound,
+                               startQuote < endQuote {
+                                let summary = String(extractedText[startQuote..<endQuote])
+                                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                                    .replacingOccurrences(of: "\"", with: "")
+                                if !summary.isEmpty {
+                                    return summary
+                                }
+                            }
+                        }
+                        
+                        // 2.2 Si no hay campo summary específico, usar todo el contenido
+                        if !content.isEmpty {
+                            return content
+                        }
                     }
                 }
             } catch {
-                print("Error al procesar JSON del contenido: \(error)")
+                print("Error procesando JSON para summary: \(error)")
+            }
+            
+            // 3. Intentar extraer con regex si falló el parsing JSON
+            if let summaryMatch = note.summary.range(of: "\"summary\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
+                let summaryText = String(note.summary[summaryMatch])
+                if let startQuote = summaryText.range(of: "\":", options: .backwards)?.upperBound,
+                   let endQuote = summaryText.range(of: "\"", options: .backwards)?.lowerBound,
+                   startQuote < endQuote {
+                    let summary = String(summaryText[startQuote..<endQuote])
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !summary.isEmpty {
+                        return summary
+                    }
+                }
             }
         }
         
-        // Si no se pudo procesar como JSON o no es JSON, devolver el contenido original
-        return note.summary
+        // Si no pudimos obtener el summary del JSON, devolver algún contenido alternativo
+        if let processed = note.processedSummary, !processed.isEmpty {
+            return processed
+        }
+        
+        // Si todo lo demás falla, devolver el contenido completo
+        return note.summary.isEmpty ? "No se pudo extraer el contenido del summary" : note.summary
+    }
+    
+    // Extraer solo el ID del título si es un UUID
+    private var displayOriginalTitle: String {
+        // Si el título empieza con "Nota " seguido de un UUID, extraer solo el UUID
+        if note.title.starts(with: "Nota ") {
+            let components = note.title.components(separatedBy: " ")
+            if components.count > 1 {
+                return "ID: \(components[1].prefix(8))..."
+            }
+        }
+        return note.title
     }
     
     // Convertir el resumen a formato markdown
     private var markdownContent: String {
         var markdown = """
-        # \(note.title)
+        # \(note.suggestedTitle)
         
         """
         
-        // Añadir título sugerido si existe y es diferente
-        if !note.suggestedTitle.isEmpty && note.suggestedTitle != note.title {
-            markdown += """
-            > **Título sugerido:** \(note.suggestedTitle)
-            
-            """
-        }
+        // Añadir ID como metadato
+        markdown += """
+        > ID: \(note.id)
+        
+        """
         
         // Añadir el contenido del resumen (limpio)
-        markdown += cleanedContent
+        markdown += displaySummary
         
         // Añadir metadatos al final
         markdown += """
@@ -1277,7 +1438,7 @@ struct NoteDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Title with icon
+                // Título principal (suggestedTitle)
                 HStack {
                     Image(systemName: "doc.text")
                         .font(.title)
@@ -1289,29 +1450,35 @@ struct NoteDetailView: View {
                 }
                 .padding(.top)
                 
-                // Original title (if showing suggested title)
+                // Fecha destacada
+                HStack {
+                    Image(systemName: "calendar")
+                        .foregroundColor(.secondary)
+                    
+                    Text("Fecha: \(formatDate(note.created))")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 2)
+                
+                // Original title (si hay título sugerido y es diferente)
                 if !note.suggestedTitle.isEmpty && note.suggestedTitle != note.title {
                     HStack {
                         Image(systemName: "character.book.closed")
                             .foregroundColor(.green)
                         
-                        Text(note.title)
+                        Text(displayOriginalTitle)
                             .font(.headline)
                             .foregroundColor(.green)
                     }
                     .padding(.top, 4)
                 }
                 
-                // Date
-                Text("Fecha: \(formatDate(note.created))")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
                 Divider()
                     .padding(.vertical, 8)
                 
                 // Warning if empty
-                if cleanedContent.isEmpty {
+                if displaySummary.isEmpty {
                     Text("No hay contenido disponible para esta nota")
                         .font(.headline)
                         .foregroundColor(.red)
@@ -1320,8 +1487,8 @@ struct NoteDetailView: View {
                         .background(Color.black.opacity(0.1))
                         .cornerRadius(8)
                 } else {
-                    // Content with improved visibility
-                    Text(cleanedContent)
+                    // Texto del contenido completo (summary)
+                    Text(displaySummary)
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(colorScheme == .dark ? Color.black : Color.white)
@@ -1411,6 +1578,7 @@ struct AnalyzedNote: Identifiable {
     let folderURL: URL
     let created: Date
     let suggestedTitle: String // Título sugerido para mostrar en la vista de detalle
+    let processedSummary: String? // Optional processed summary
     
     // Inicializador con valores por defecto para evitar valores nulos
     init(id: UUID = UUID(), 
@@ -1418,13 +1586,15 @@ struct AnalyzedNote: Identifiable {
          summary: String = "", 
          folderURL: URL, 
          created: Date = Date(),
-         suggestedTitle: String = "") {
+         suggestedTitle: String = "",
+         processedSummary: String? = nil) {
         self.id = id
         self.title = title.isEmpty ? "Nota sin título" : title
         self.summary = summary
         self.folderURL = folderURL
         self.created = created
         self.suggestedTitle = suggestedTitle.isEmpty ? title : suggestedTitle
+        self.processedSummary = processedSummary
     }
     
     // Método para verificar la validez de la nota
@@ -1493,40 +1663,77 @@ struct NoteCell: View {
         return note.title
     }
     
-    // Extraer resumen limpio
+    // Extraer resumen limpio para visualización
     private var displaySummary: String {
-        // Si es JSON, intentar extraer solo el texto relevante
+        // Si es JSON, intentar múltiples formatos
         if note.summary.starts(with: "{") {
             do {
-                // Intentar parsear como JSON para extraer contenido
                 if let jsonData = note.summary.data(using: .utf8),
                    let jsonObj = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
                     
-                    // Intentar extraer primero de "summary" si existe
-                    if let summary = jsonObj["summary"] as? String {
-                        return summary
+                    // 1. Intentar extraer directamente del campo "summary"
+                    if let summaryValue = jsonObj["summary"] as? String, !summaryValue.isEmpty {
+                        return summaryValue
                     }
                     
-                    // Luego intentar desde choices (formato OpenAI)
+                    // 2. Buscar en formato de respuesta de OpenAI
                     if let choices = jsonObj["choices"] as? [[String: Any]],
                        let firstChoice = choices.first,
                        let message = firstChoice["message"] as? [String: Any],
                        let content = message["content"] as? String {
-                        return content
+                        
+                        // 2.1 Buscar el campo "summary" dentro del contenido
+                        if let range = content.range(of: "\"summary\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
+                            let extractedText = String(content[range])
+                            if let startQuote = extractedText.range(of: "\":", options: .backwards)?.upperBound,
+                               let endQuote = extractedText.range(of: "\"", options: .backwards)?.lowerBound,
+                               startQuote < endQuote {
+                                let summary = String(extractedText[startQuote..<endQuote])
+                                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                                    .replacingOccurrences(of: "\"", with: "")
+                                if !summary.isEmpty {
+                                    return summary
+                                }
+                            }
+                        }
+                        
+                        // 2.2 Si no hay campo summary específico, usar todo el contenido
+                        if !content.isEmpty {
+                            return content
+                        }
                     }
                 }
             } catch {
-                // Si hay error al procesar, no hacer nada y usar el fallback
+                print("Error procesando JSON para summary: \(error)")
+            }
+            
+            // 3. Intentar extraer con regex si falló el parsing JSON
+            if let summaryMatch = note.summary.range(of: "\"summary\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
+                let summaryText = String(note.summary[summaryMatch])
+                if let startQuote = summaryText.range(of: "\":", options: .backwards)?.upperBound,
+                   let endQuote = summaryText.range(of: "\"", options: .backwards)?.lowerBound,
+                   startQuote < endQuote {
+                    let summary = String(summaryText[startQuote..<endQuote])
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !summary.isEmpty {
+                        return summary
+                    }
+                }
             }
         }
         
-        // Si no se pudo procesar como JSON, devolver el contenido original
-        return note.summary
+        // Si no pudimos obtener el summary del JSON, devolver algún contenido alternativo
+        if let processed = note.processedSummary, !processed.isEmpty {
+            return processed
+        }
+        
+        // Si todo lo demás falla, devolver el contenido completo
+        return note.summary.isEmpty ? "No se pudo extraer el contenido del summary" : note.summary
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Título principal
+            // Título principal (suggestedTitle)
             Text(displayTitle)
                 .font(.headline)
                 .foregroundColor(.primary)
@@ -1538,12 +1745,12 @@ struct NoteCell: View {
                 .font(.caption2)
                 .foregroundColor(.secondary)
             
-            // Divider and summary
+            // Divider and summary preview
             if !displaySummary.isEmpty {
                 Divider()
                     .padding(.vertical, 4)
                 
-                // Mostrar resumen
+                // Mostrar resumen truncado
                 Text(displaySummary.prefix(150) + (displaySummary.count > 150 ? "..." : ""))
                     .font(.caption)
                     .foregroundColor(colorScheme == .dark ? Color.white.opacity(0.9) : Color.black.opacity(0.8))
@@ -1551,7 +1758,7 @@ struct NoteCell: View {
                     .padding(.top, 2)
             }
             
-            // Chevron
+            // Indicador de navegación
             HStack {
                 Spacer()
                 Image(systemName: "chevron.right")
