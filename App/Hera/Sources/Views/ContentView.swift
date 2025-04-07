@@ -353,7 +353,7 @@ struct ContentView: View {
     
     @ViewBuilder
     private func bottomBarView() -> some View {
-        VStack {
+        VStack(spacing: 0) {
             Spacer()
             
             HStack {
@@ -368,9 +368,10 @@ struct ContentView: View {
                         
                         Image(systemName: "list.bullet")
                             .font(.title3)
-                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : iconColor)
+                            .foregroundColor(colorScheme == .dark ? .white : iconColor)
+                            .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
                     }
-                    .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 1)
+                    .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                 }
                 .padding(.leading, 30)
                 
@@ -397,7 +398,7 @@ struct ContentView: View {
                             )
                             .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
                     }
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.18),
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.2),
                             radius: 12, x: 0, y: 4)
                     .offset(y: -2) // Slightly elevated to give a relief sensation
                 }
@@ -415,22 +416,32 @@ struct ContentView: View {
                         
                         Image(systemName: "gear")
                             .font(.title3)
-                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : iconColor)
+                            .foregroundColor(colorScheme == .dark ? .white : iconColor)
+                            .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
                     }
-                    .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 1)
+                    .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                 }
                 .padding(.trailing, 30)
             }
-            .padding(.bottom, 20)
-            .padding(.top, 8)
+            .padding(.bottom, 25)
+            .padding(.top, 15)
             .background(
-                Rectangle()
-                    .fill(.regularMaterial)
-                    .opacity(colorScheme == .dark ? 0.6 : 0.7)
-                    .ignoresSafeArea(edges: .bottom)
-                    .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: -1)
+                ZStack(alignment: .top) {
+                    // Fondo principal con mayor opacidad
+                    Rectangle()
+                        .fill(.regularMaterial)
+                        .opacity(colorScheme == .dark ? 0.8 : 0.9)
+                    
+                    // Borde superior para mejor separación visual
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(colorScheme == .dark ? Color.white.opacity(0.15) : Color.black.opacity(0.1))
+                }
+                .edgesIgnoringSafeArea(.bottom)
+                .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: -2)
             )
         }
+        .edgesIgnoringSafeArea(.bottom)
     }
     
     // MARK: - Playback View
@@ -1514,8 +1525,49 @@ struct NoteDetailView: View {
                                 Text("Contenido")
                                     .font(.headline)
                                     .foregroundColor(AppColors.adaptiveText)
+                                
+                                Spacer()
+                                
+                                // Botón pequeño para copiar
+                                Button {
+                                    UIPasteboard.general.string = markdownContent
+                                    
+                                    withAnimation {
+                                        showCopiedMessage = true
+                                    }
+                                    
+                                    // Ocultar el mensaje después de 2 segundos
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                        withAnimation {
+                                            showCopiedMessage = false
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.system(size: 15))
+                                        .foregroundColor(colorScheme == .dark ? .white : Color.blue)
+                                        .padding(6)
+                                        .background(
+                                            Circle()
+                                                .fill(colorScheme == .dark ? Color.blue.opacity(0.2) : Color.blue.opacity(0.1))
+                                        )
+                                }
                             }
                             .padding(.bottom, 4)
+                            .overlay(
+                                ZStack {
+                                    if showCopiedMessage {
+                                        Text("¡Copiado!")
+                                            .font(.caption2)
+                                            .fontWeight(.medium)
+                                            .padding(5)
+                                            .background(Color.blue.opacity(0.15))
+                                            .cornerRadius(4)
+                                            .foregroundColor(.primary)
+                                            .offset(x: -40, y: 25)
+                                    }
+                                }
+                            )
                             
                             // Texto del contenido completo (summary) con soporte para Markdown
                             MarkdownText(markdown: displaySummary)
@@ -1531,53 +1583,6 @@ struct NoteDetailView: View {
                                 .stroke(colorScheme == .dark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1)
                         )
                         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.08 : 0.12), radius: 3, x: 0, y: 2)
-                        
-                        // Botón para copiar al portapapeles
-                        Button(action: {
-                            UIPasteboard.general.string = markdownContent
-                            
-                            withAnimation {
-                                showCopiedMessage = true
-                            }
-                            
-                            // Ocultar el mensaje después de 2 segundos
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                withAnimation {
-                                    showCopiedMessage = false
-                                }
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "doc.on.doc")
-                                    .font(.system(size: 15))
-                                Text("Copiar al portapapeles")
-                                    .fontWeight(.medium)
-                            }
-                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : .white)
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 20)
-                            .background(
-                                Capsule()
-                                    .fill(Color.blue.gradient)
-                            )
-                            .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
-                        }
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .overlay(
-                            Text("¡Copiado!")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .padding(8)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(colorScheme == .dark ? Color.blue.opacity(0.3) : Color.blue.opacity(0.15))
-                                )
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
-                                .offset(y: -45)
-                                .opacity(showCopiedMessage ? 1 : 0)
-                                .animation(.easeInOut(duration: 0.2), value: showCopiedMessage)
-                        )
                     }
                 }
                 .padding()

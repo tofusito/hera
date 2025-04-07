@@ -736,12 +736,12 @@ struct PlaybackView: View {
                             
                             // Botón minimalista para exportar a Notas
                             Button(action: {
-                                exportToNotes()
+                                copyToClipboard()
                             }) {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "note.text")
+                                    Image(systemName: "doc.on.doc")
                                         .font(.footnote)
-                                    Text("Export")
+                                    Text("Copy")
                                         .font(.caption)
                                 }
                                 .padding(6)
@@ -976,7 +976,7 @@ struct PlaybackView: View {
             Button(action: togglePlayPause) {
                 ZStack {
                     // Fondo con efecto de vidrio
-                    Circle()
+                                            Circle()
                         .fill(.ultraThinMaterial)
                         .frame(width: 75, height: 75)
                     
@@ -1454,11 +1454,11 @@ struct PlaybackView: View {
             }
             
             cleanedJsonString = filteredLines.joined(separator: "\n")
-            print("📝 JSON limpiado de marcas de código markdown")
+            print("📝 JSON cleaned from markdown code marks")
         }
         
         guard let jsonData = cleanedJsonString.data(using: .utf8) else {
-            print("❌ No se pudo convertir el string a data")
+            print("❌ Could not convert string to data")
             return
         }
         
@@ -1466,131 +1466,131 @@ struct PlaybackView: View {
             let decoder = JSONDecoder()
             let result = try decoder.decode(AnalysisResult.self, from: jsonData)
             self.analysisData = result
-            print("✅ JSON decodificado correctamente: \(result.summary.prefix(30))...")
+            print("✅ JSON decoded correctly: \(result.summary.prefix(30))...")
             
-            // Mostrar secciones por defecto si tienen contenido
+            // Show sections by default if they have content
             self.showEvents = result.events?.isEmpty == false
             self.showReminders = result.reminders?.isEmpty == false
         } catch {
-            print("❌ Error al decodificar JSON: \(error)")
+            print("❌ Error decoding JSON: \(error)")
             
-            // Intento de respaldo: buscar manualmente llaves { } JSON y extraer el contenido
+            // Fallback attempt: manually search for JSON braces { } and extract content
             if let startIndex = cleanedJsonString.firstIndex(of: "{"),
                let endIndex = cleanedJsonString.lastIndex(of: "}") {
                 
                 let jsonSubstring = cleanedJsonString[startIndex...endIndex]
                 let extractedJson = String(jsonSubstring)
                 
-                print("🔄 Intentando con JSON extraído manualmente: \(extractedJson.prefix(50))...")
+                print("🔄 Trying with manually extracted JSON: \(extractedJson.prefix(50))...")
                 
                 if let jsonData = extractedJson.data(using: .utf8) {
                     do {
                         let decoder = JSONDecoder()
                         let result = try decoder.decode(AnalysisResult.self, from: jsonData)
                         self.analysisData = result
-                        print("✅ JSON extraído decodificado correctamente")
+                        print("✅ Extracted JSON decoded correctly")
                         
-                        // Mostrar secciones por defecto si tienen contenido
+                        // Show sections by default if they have content
                         self.showEvents = result.events?.isEmpty == false
                         self.showReminders = result.reminders?.isEmpty == false
                     } catch let extractionError {
-                        print("❌ Error en segundo intento de decodificación: \(extractionError)")
+                        print("❌ Error in second decoding attempt: \(extractionError)")
                     }
                 }
             }
         }
     }
     
-    // Función para renombrar la grabación
+    // Function to rename the recording
     private func renameRecording(newName: String) {
         guard !newName.isEmpty else { return }
         
-        // Buscar la grabación original en SwiftData
+        // Search for the original recording in SwiftData
         let fetchDescriptor = FetchDescriptor<AudioRecording>()
         
         do {
             let allRecordings = try modelContext.fetch(fetchDescriptor)
-            // Buscar manualmente por ID
+            // Search manually by ID
             if let originalRecording = allRecordings.first(where: { $0.id == recording.id }) {
-                // Actualizar el nombre en la grabación original
-                print("🔄 Actualizando nombre en grabación SwiftData: \(originalRecording.id)")
+                // Update the name in the original recording
+                print("🔄 Updating name in SwiftData recording: \(originalRecording.id)")
                 originalRecording.title = newName
                 try modelContext.save()
                 
-                // Actualizar también la instancia actual
+                // Update the current instance as well
                 recording.title = newName
                 
-                // Publicar una notificación para que ContentView refresque la lista
+                // Post a notification so ContentView refreshes the list
                 NotificationCenter.default.post(name: Notification.Name("RefreshRecordingsList"), object: nil)
                 
-                print("✅ Nombre actualizado correctamente en SwiftData")
+                print("✅ Name successfully updated in SwiftData")
             } else {
-                print("⚠️ No se encontró la grabación en SwiftData: \(recording.id)")
-                // Intentar guardar en la instancia actual como respaldo
+                print("⚠️ Recording not found in SwiftData: \(recording.id)")
+                // Try to save in the current instance as backup
                 recording.title = newName
                 try? modelContext.save()
                 
-                // Publicar notificación para refrescar la lista de todas formas
+                // Post notification to refresh the list anyway
                 NotificationCenter.default.post(name: Notification.Name("RefreshRecordingsList"), object: nil)
             }
         } catch {
-            print("❌ Error al buscar/guardar en SwiftData: \(error)")
-            // Intentar guardar en la instancia actual como respaldo
+            print("❌ Error searching/saving in SwiftData: \(error)")
+            // Try to save in the current instance as backup
             recording.title = newName
             try? modelContext.save()
             
-            // Publicar notificación para refrescar la lista de todas formas
+            // Post notification to refresh the list anyway
             NotificationCenter.default.post(name: Notification.Name("RefreshRecordingsList"), object: nil)
         }
     }
     
-    // MARK: - Métodos de ayuda para el botón
+    // MARK: - Helper methods for the button
     
-    // Determinar si se debe deshabilitar el botón
+    // Determine if the button should be disabled
     private func shouldDisableButton() -> Bool {
         if openAIKey.isEmpty {
-            // Sin API key
+            // No API key
             return true
         }
         
         if isTranscribing || isProcessing {
-            // En proceso
+            // In process
             return true
         }
         
-        // Todo correcto, habilitar botón
+        // All good, enable button
         return false
     }
     
-    // Determinar el color de fondo del botón según el estado
+    // Determine button background color based on state
     private func determineButtonBackground() -> Color {
         if openAIKey.isEmpty {
-            // Sin API key
+            // No API key
             return Color.gray.opacity(0.3)
         }
         
         if isTranscribing || isProcessing {
-            // En proceso
+            // In process
             return Color.gray.opacity(0.7)
         }
         
-        // Estado normal, listo para procesar
+        // Normal state, ready to process
         return Color.gray.opacity(0.6)
     }
     
-    // Mostrar hoja de configuración de API
+    // Show API settings sheet
     private func showSettingsSheet() {
-        // Usar una notificación para abrir la hoja de configuración desde ContentView
+        // Use a notification to open the settings sheet from ContentView
         NotificationCenter.default.post(name: Notification.Name("ShowAPISettings"), object: nil)
-        // Cerrar la vista actual
+        // Close the current view
         dismiss()
     }
     
-    // Función para añadir evento al calendario
+    // Function to add event to calendar
     private func addEventToCalendar(title: String, date: String, timeString: String? = nil) {
-        // Comprobar si tenemos permisos para acceder al calendario
+        // Check if we have permissions to access the calendar
         if CalendarManager.shared.checkCalendarAuthorizationStatus() {
-            // Tenemos permisos, añadir evento
+            // We have permissions, add event
             CalendarManager.shared.addEventToCalendar(title: title, dateString: date, timeString: timeString, notes: "Event added from Hera") { success, error, details in
                 if success {
                     calendarAlertMessage = "Event '\(title)' successfully added to calendar.\n\n\(details)"
@@ -1601,10 +1601,10 @@ struct PlaybackView: View {
                 }
             }
         } else {
-            // No tenemos permisos, solicitarlos
+            // We don't have permissions, request them
             CalendarManager.shared.requestAccess { granted in
                 if granted {
-                    // Permisos concedidos, añadir evento
+                    // Permissions granted, add event
                     CalendarManager.shared.addEventToCalendar(title: title, dateString: date, timeString: timeString, notes: "Event added from Hera") { success, error, details in
                         if success {
                             calendarAlertMessage = "Event '\(title)' successfully added to calendar.\n\n\(details)"
@@ -1615,18 +1615,18 @@ struct PlaybackView: View {
                         }
                     }
                 } else {
-                    // Permisos denegados, mostrar alerta
+                    // Permissions denied, show alert
                     showCalendarPermissionAlert = true
                 }
             }
         }
     }
     
-    // Función para añadir recordatorio a la app de Recordatorios
+    // Function to add reminder to the Reminders app
     private func addTaskToReminders(title: String, date: String) {
-        // Comprobar si tenemos permisos para acceder a recordatorios
+        // Check if we have permissions to access reminders
         if CalendarManager.shared.checkRemindersAuthorizationStatus() {
-            // Tenemos permisos, añadir recordatorio
+            // We have permissions, add reminder
             CalendarManager.shared.addReminderToApp(title: title, dateString: date, notes: "Reminder added from Hera") { success, error, details in
                 if success {
                     reminderAlertMessage = "Reminder '\(title)' added successfully.\n\n\(details)"
@@ -1637,10 +1637,10 @@ struct PlaybackView: View {
                 }
             }
         } else {
-            // No tenemos permisos, solicitarlos
+            // We don't have permissions, request them
             CalendarManager.shared.requestRemindersAccess { granted in
                 if granted {
-                    // Permisos concedidos, añadir recordatorio
+                    // Permissions granted, add reminder
                     CalendarManager.shared.addReminderToApp(title: title, dateString: date, notes: "Reminder added from Hera") { success, error, details in
                         if success {
                             reminderAlertMessage = "Reminder '\(title)' added successfully.\n\n\(details)"
@@ -1651,16 +1651,16 @@ struct PlaybackView: View {
                         }
                     }
                 } else {
-                    // Permisos denegados, mostrar alerta
+                    // Permissions denied, show alert
                     showReminderPermissionAlert = true
                 }
             }
         }
     }
     
-    // Función para compartir el memo
+    // Function to share the memo
     private func shareMemo() {
-        // Preparar el texto para compartir
+        // Prepare the text to share
         var shareText = ""
         
         shareText += "\(recording.title)\n\n"
@@ -1689,34 +1689,34 @@ struct PlaybackView: View {
             }
         }
         
-        // Crear el item para compartir
+        // Create the item to share
         let activityVC = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
         
-        // Presentar el controlador
+        // Present the controller
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let rootViewController = windowScene.windows.first?.rootViewController {
             rootViewController.present(activityVC, animated: true, completion: nil)
         }
     }
     
-    // Función para exportar a la app Notas del iPhone
-    private func exportToNotes() {
+    // Function to copy the content to the clipboard
+    private func copyToClipboard() {
         guard let analysisData = analysisData else {
-            notesAlertMessage = "No analysis available to export"
+            notesAlertMessage = "No analysis available to copy"
             showNotesAlert = true
             return
         }
         
-        // Obtener el título sugerido o usar uno predeterminado
+        // Get the suggested title or use a default one
         let noteTitle = analysisData.suggestedTitle ?? recording.title
         
-        // Construir el cuerpo de la nota con formato
+        // Construct the note body with format
         var noteBody = ""
         
-        // Añadir el resumen completo
+        // Add the full summary
         noteBody += analysisData.summary
         
-        // Añadir sección de eventos si hay alguno
+        // Add section of events if there are any
         if let events = analysisData.events, !events.isEmpty {
             noteBody += "\n\n## Events\n"
             for event in events {
@@ -1725,7 +1725,7 @@ struct PlaybackView: View {
             }
         }
         
-        // Añadir sección de recordatorios si hay alguno
+        // Add section of reminders if there are any
         if let reminders = analysisData.reminders, !reminders.isEmpty {
             noteBody += "\n\n## Reminders\n"
             for reminder in reminders {
@@ -1734,83 +1734,33 @@ struct PlaybackView: View {
             }
         }
         
-        // Si está disponible, añadir la transcripción al final
+        // If available, add the transcription at the end
         if let transcription = recording.transcription {
             noteBody += "\n\n## Original Transcription\n\n"
             noteBody += transcription
         }
         
-        // Crear la nota usando NoteKit
-        createNote(title: noteTitle, content: noteBody) { success, errorMessage in
-            DispatchQueue.main.async {
-                if success {
-                    self.notesAlertMessage = "Note '\(noteTitle)' has been successfully created in the Notes app."
-                } else {
-                    self.notesAlertMessage = "Error creating note: \(errorMessage)"
-                }
-                self.showNotesAlert = true
-            }
-        }
-    }
-    
-    // Función auxiliar para crear una nota en la app Notas
-    private func createNote(title: String, content: String, completion: @escaping (Bool, String) -> Void) {
-        // URL para la integración con la app Notas mediante URL scheme
-        var components = URLComponents(string: "mobilenotes://")
+        // Copy to clipboard
+        let completeContent = "\(noteTitle)\n\n\(noteBody)"
+        UIPasteboard.general.string = completeContent
         
-        // Codificar título y contenido para URL
-        let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let encodedContent = content.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        
-        // Construir la URL con los parámetros
-        components?.queryItems = [
-            URLQueryItem(name: "title", value: encodedTitle),
-            URLQueryItem(name: "body", value: encodedContent)
-        ]
-        
-        if let url = components?.url {
-            // Verificar si la URL es válida y puede ser abierta
-            if UIApplication.shared.canOpenURL(url) {
-                UIApplication.shared.open(url, options: [:]) { success in
-                    if success {
-                        completion(true, "")
-                    } else {
-                        completion(false, "Could not open Notes app")
-                    }
-                }
-            } else {
-                // Fallback alternativo usando la API de compartir
-                let activityVC = UIActivityViewController(
-                    activityItems: [title, content],
-                    applicationActivities: nil
-                )
-                
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let rootViewController = windowScene.windows.first?.rootViewController {
-                    rootViewController.present(activityVC, animated: true) {
-                        completion(true, "Using share menu as alternative")
-                    }
-                } else {
-                    completion(false, "Could not access view controller for sharing")
-                }
-            }
-        } else {
-            completion(false, "Invalid URL")
-        }
+        // Show confirmation message
+        notesAlertMessage = "Content copied to clipboard"
+        showNotesAlert = true
     }
 }
 
-// Extensión para agregar métodos al AudioManager
+// Extension to add methods to AudioManager
 extension AudioManager {
     var isPlayerReady: Bool {
         return player != nil
     }
     
     func pausePlayback() {
-        // Este método pausa sin liberar recursos
+        // This method pauses without releasing resources
         if let player = player {
             player.pause()
-            // Usar DispatchQueue para actualizar estado
+            // Use DispatchQueue to update state
             DispatchQueue.main.async {
                 self.isPlaying = false
                 print("🛑 Playback paused")
@@ -1819,11 +1769,11 @@ extension AudioManager {
     }
     
     func resumePlayback() {
-        // Este método reanuda la reproducción si ya está preparado
+        // This method resumes playback if already prepared
         if let player = player {
             print("▶️ Playback resumed")
             player.play()
-            // Usar DispatchQueue para actualizar estado
+            // Use DispatchQueue to update state
             DispatchQueue.main.async {
                 self.isPlaying = true
             }
@@ -1831,18 +1781,18 @@ extension AudioManager {
     }
 }
 
-// Vista para visualizar forma de onda durante reproducción
+// View to visualize waveform during playback
 struct PlaybackBarsView: View {
     var isPlaying: Bool
     @Environment(\.colorScheme) private var colorScheme
     
-    // Estado para la animación de los círculos
+    // State for animation of circles
     @State private var scales: [CGFloat] = [0.8, 0.6, 0.9, 0.7]
     @State private var timer: Timer?
     
     var body: some View {
         HStack(spacing: 20) {
-            // Cuatro círculos animados
+            // Four animated circles
             ForEach(0..<4) { index in
                 Circle()
                     .fill(colorScheme == .dark ? 
@@ -1856,66 +1806,66 @@ struct PlaybackBarsView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 40)
         .onAppear {
-            // Solo iniciamos el timer si está reproduciendo
+            // We only start the timer if playing
             if isPlaying {
                 startAnimationTimer()
             }
         }
         .onDisappear {
-            // Detener el timer al desaparecer
+            // Stop the timer when disappearing
             stopAnimationTimer()
         }
         .onChange(of: isPlaying) { _, newValue in
             if newValue {
-                // Iniciar animación cuando comienza la reproducción
+                // Start animation when playback starts
                 startAnimationTimer()
             } else {
-                // Detener animación cuando se pausa
+                // Stop animation when paused
                 stopAnimationTimer()
-                // Resetear los tamaños a valores estáticos cuando está pausado
+                // Reset sizes to static values when paused
                 resetScales()
             }
         }
     }
     
-    // Método para iniciar la animación de los círculos
+    // Method to start the animation of circles
     private func startAnimationTimer() {
-        // Cancelar timer existente
+        // Cancel existing timer
         stopAnimationTimer()
         
-        // Crear un nuevo timer que actualiza las escalas aleatoriamente
+        // Create a new timer that updates scales randomly
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
             withAnimation {
-                // Generar nuevas escalas aleatorias para cada círculo con más rango
+                // Generate new random scales for each circle with more range
                 for i in 0..<scales.count {
                     scales[i] = CGFloat.random(in: 0.4...1.2)
                 }
             }
         }
         
-        // Activar el timer inmediatamente para la primera animación
+        // Activate the timer immediately for the first animation
         timer?.fire()
         
-        // Asegurar que el timer funcione incluso cuando hay scroll
+        // Ensure the timer works even when scrolling
         if let timer = timer {
             RunLoop.current.add(timer, forMode: .common)
         }
     }
     
-    // Método para detener la animación
+    // Method to stop the animation
     private func stopAnimationTimer() {
         timer?.invalidate()
         timer = nil
     }
     
-    // Resetear las escalas a valores estáticos
+    // Reset sizes to static values
     private func resetScales() {
-        // Valores uniformes para el estado pausado
+        // Uniform values for paused state
         scales = [0.8, 0.8, 0.8, 0.8]
     }
 }
 
-// MARK: - Vistas para la lista de notas
+// MARK: - Views for the list of notes
 struct AnalyzedNotesListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -1924,7 +1874,7 @@ struct AnalyzedNotesListView: View {
     @State private var sortOrder: SortOrder = .newest
     @State private var showSortOptions: Bool = false
     
-    // Propiedades calculadas para filtrar y ordenar notas
+    // Calculated properties to filter and sort notes
     private var filteredNotes: [PlaybackAnalyzedNote] {
         if searchText.isEmpty {
             return sortedNotes
@@ -1964,8 +1914,8 @@ struct AnalyzedNotesListView: View {
                         NoteDetailFullScreenView(note: note)
                     } label: {
                         HStack(spacing: 15) {
-                            // Icono de la nota con círculo
-                            ZStack {
+                            // Icon of the note with circle
+                                    ZStack {
                                 Circle()
                                     .fill(Color.blue.opacity(0.1))
                                     .frame(width: 44, height: 44)
@@ -1978,7 +1928,7 @@ struct AnalyzedNotesListView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(note.title)
                                     .font(.headline)
-                                    .foregroundColor(.primary)
+                                                .foregroundColor(.primary)
                                 Text(note.recordingTitle)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
@@ -1986,7 +1936,7 @@ struct AnalyzedNotesListView: View {
                             }
                             Spacer()
                             
-                            // Fecha
+                            // Date
                             Text(formatDate(note.created))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
@@ -2028,7 +1978,7 @@ struct AnalyzedNotesListView: View {
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
+                                Button(action: {
                     dismiss()
                 }) {
                     Text("Cerrar")
@@ -2052,11 +2002,11 @@ struct AnalyzedNotesListView: View {
                 if let analysis = recording.analysis {
                     print("📊 Analysis found for recording \(recording.title)")
                     
-                    // Procesar el JSON
+                    // Process the JSON
                     let processedData = processAnalysisJSON(analysis)
                     
                     if let title = processedData.title, let summary = processedData.summary {
-                        print("✅ Procesado exitoso - Título: \(title), Longitud resumen: \(summary.count)")
+                        print("✅ Successful processing - Title: \(title), Length of summary: \(summary.count)")
                         
                         let note = PlaybackAnalyzedNote(
                             id: recording.id,
@@ -2070,7 +2020,7 @@ struct AnalyzedNotesListView: View {
                 }
             }
             
-            // Usar animación para cargar las notas
+            // Use animation to load notes
             withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                 analyzedNotes = notes
             }
@@ -2080,11 +2030,11 @@ struct AnalyzedNotesListView: View {
         }
     }
     
-    // Función para procesar el JSON de análisis
+    // Function to process the JSON of analysis
     private func processAnalysisJSON(_ jsonString: String) -> (title: String?, summary: String?) {
-        print("🔄 Procesando JSON: \(jsonString.prefix(100))...")
+        print("🔄 Processing JSON: \(jsonString.prefix(100))...")
         
-        // Intentar extraer desde la respuesta directa de OpenAI
+        // Try extracting directly from the OpenAI response
         if let jsonData = jsonString.data(using: .utf8),
            let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
            let choices = json["choices"] as? [[String: Any]],
@@ -2092,14 +2042,14 @@ struct AnalyzedNotesListView: View {
            let message = firstChoice["message"] as? [String: Any],
            let content = message["content"] as? String {
             
-            print("🔍 Contenido del mensaje encontrado: \(content.prefix(100))...")
+            print("🔍 Content of the message found: \(content.prefix(100))...")
             
-            // Extraer el JSON del contenido
+            // Extract the JSON from the content
             if let jsonStartIndex = content.firstIndex(of: "{"),
                let jsonEndIndex = content.lastIndex(of: "}") {
                 
                 let jsonContent = String(content[jsonStartIndex...jsonEndIndex])
-                print("📄 JSON interno extraído: \(jsonContent.prefix(100))...")
+                print("📄 Internal JSON extracted: \(jsonContent.prefix(100))...")
                 
                 if let innerData = jsonContent.data(using: .utf8),
                    let innerJson = try? JSONSerialization.jsonObject(with: innerData) as? [String: Any] {
@@ -2112,7 +2062,7 @@ struct AnalyzedNotesListView: View {
             }
         }
         
-        // Intentar procesar como JSON directo de AnalysisResult
+        // Try processing as JSON directly from AnalysisResult
         if let jsonData = jsonString.data(using: .utf8),
            let analysisResult = try? JSONDecoder().decode(AnalysisResult.self, from: jsonData) {
             return (analysisResult.suggestedTitle, analysisResult.summary)
@@ -2122,13 +2072,13 @@ struct AnalyzedNotesListView: View {
     }
 }
 
-// NUEVA VISTA A PANTALLA COMPLETA PARA EL DETALLE DE NOTAS
+// NEW VIEW FULL SCREEN FOR NOTE DETAILS
 struct NoteDetailFullScreenView: View {
     let note: PlaybackAnalyzedNote
     @State private var showCopiedMessage: Bool = false
     @Environment(\.colorScheme) private var colorScheme
     
-    // Convertir el resumen a formato markdown
+    // Convert the summary to markdown format
     private var markdownContent: String {
         """
         # \(note.title)
@@ -2144,7 +2094,7 @@ struct NoteDetailFullScreenView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // Sección de fecha
+                // Date section
                 HStack {
                     Image(systemName: "calendar")
                         .foregroundColor(.blue)
@@ -2156,7 +2106,7 @@ struct NoteDetailFullScreenView: View {
                 
                 Divider()
                 
-                // Contenido del resumen
+                // Summary content
                 if note.summary.isEmpty {
                     Text("No hay contenido disponible para esta nota")
                         .font(.headline)
@@ -2164,7 +2114,7 @@ struct NoteDetailFullScreenView: View {
                         .padding()
                         .frame(maxWidth: .infinity)
                         .background(Color.black.opacity(0.1))
-                        .cornerRadius(8)
+                                    .cornerRadius(8)
                 } else {
                     Text(note.summary)
                         .font(.body)
@@ -2184,7 +2134,7 @@ struct NoteDetailFullScreenView: View {
                 
                 Divider()
                 
-                // Información de la grabación
+                // Recording information
                 HStack {
                     Image(systemName: "waveform")
                         .foregroundColor(.purple)
@@ -2193,7 +2143,7 @@ struct NoteDetailFullScreenView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                // Botón para copiar al portapapeles con posición fija en la esquina inferior derecha
+                // Button to copy to clipboard with fixed position in the bottom right corner
                 ZStack(alignment: .bottomTrailing) {
                     Color.clear
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -2265,12 +2215,12 @@ struct NoteDetailFullScreenView: View {
     }
 }
 
-// Enumeración para las opciones de ordenación
+// Enumeration for sorting options
 enum SortOrder {
     case newest, oldest, alphabetical
 }
 
-// Modelo para las notas analizadas
+// Model for analyzed notes
 struct PlaybackAnalyzedNote: Identifiable {
     let id: UUID
     let title: String
@@ -2279,7 +2229,7 @@ struct PlaybackAnalyzedNote: Identifiable {
     let created: Date
 }
 
-// Función para formatear fechas
+// Function to format dates
 private func formatDate(_ date: Date, includeTime: Bool = false) -> String {
     let formatter = DateFormatter()
     formatter.dateStyle = .medium

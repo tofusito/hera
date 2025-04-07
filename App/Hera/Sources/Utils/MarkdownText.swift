@@ -8,11 +8,11 @@ struct MarkdownText: View {
     
     @Environment(\.colorScheme) private var colorScheme
     
-    // Procesar el texto para convertir secuencias de escape a caracteres reales
+    // Process text to convert escape sequences to actual characters
     private var processedText: String {
         var text = markdown
         
-        // Reemplazar las secuencias de escape comunes
+        // Replace common escape sequences
         let replacements: [String: String] = [
             "\\n": "\n",
             "\\t": "\t",
@@ -20,11 +20,11 @@ struct MarkdownText: View {
             "\\\\": "\\",
             "\\\"": "\"",
             "\\\'": "\'",
-            "\\n\\n": "\n\n", // Doble salto de línea
-            "\\n\\r": "\n\r"  // Combinación salto de línea y retorno
+            "\\n\\n": "\n\n", // Double line break
+            "\\n\\r": "\n\r"  // Line break and carriage return combination
         ]
         
-        // Aplicar todas las sustituciones
+        // Apply all substitutions
         for (escape, replacement) in replacements {
             text = text.replacingOccurrences(of: escape, with: replacement)
         }
@@ -36,7 +36,7 @@ struct MarkdownText: View {
         if #available(iOS 15.0, *) {
             renderMarkdown()
         } else {
-            // iOS 14: Fallback a texto plano
+            // iOS 14: Fallback to plain text
             plainText
         }
     }
@@ -45,8 +45,8 @@ struct MarkdownText: View {
     private func renderMarkdown() -> some View {
         let options = AttributedString.MarkdownParsingOptions(
             allowsExtendedAttributes: true,
-            interpretedSyntax: .full,  // Interpretar toda la sintaxis de Markdown
-            failurePolicy: .returnPartiallyParsedIfPossible  // Devolver lo que se pueda parsear
+            interpretedSyntax: .full,  // Interpret all Markdown syntax
+            failurePolicy: .returnPartiallyParsedIfPossible  // Return what can be parsed
         )
         
         do {
@@ -57,8 +57,8 @@ struct MarkdownText: View {
                 .lineSpacing(lineSpacing)
                 .eraseToAnyView()
         } catch {
-            print("Error al renderizar Markdown: \(error)")
-            // Si falla, usar nuestra implementación personalizada más simple
+            print("Error rendering Markdown: \(error)")
+            // If it fails, use our simpler custom implementation
             return MarkdownTextCustomRenderer(text: processedText)
                 .eraseToAnyView()
         }
@@ -72,27 +72,27 @@ struct MarkdownText: View {
             .textSelection(.enabled)
     }
     
-    // Función para detectar si el texto parece contener formato Markdown
+    // Function to detect if the text appears to contain Markdown formatting
     private func containsMarkdown(_ text: String) -> Bool {
-        // Detectar encabezados
+        // Detect headers
         let headerPattern = #"^#{1,6}\s"#
         if text.range(of: headerPattern, options: .regularExpression, range: nil, locale: nil) != nil {
             return true
         }
         
-        // Detectar énfasis
+        // Detect emphasis
         if text.contains("**") || text.contains("__") || 
            (text.contains("*") && !text.contains("* ")) || 
            (text.contains("_") && !text.contains("_ ")) {
             return true
         }
         
-        // Detectar bloques de código
+        // Detect code blocks
         if text.contains("```") || text.contains("`") {
             return true
         }
         
-        // Detectar listas
+        // Detect lists
         let listItemPattern = #"^[\s]*[-\*\+]\s"#
         let numberedListPattern = #"^[\s]*\d+\.\s"#
         if text.range(of: listItemPattern, options: .regularExpression, range: nil, locale: nil) != nil ||
@@ -100,18 +100,18 @@ struct MarkdownText: View {
             return true
         }
         
-        // Detectar enlaces
+        // Detect links
         let linkPattern = #"\[.*?\]\(.*?\)"#
         if text.range(of: linkPattern, options: .regularExpression, range: nil, locale: nil) != nil {
             return true
         }
         
-        // No parece contener formato Markdown
+        // Doesn't appear to contain Markdown formatting
         return false
     }
 }
 
-// Renderer personalizado para versiones anteriores o si falla el parser nativo
+// Custom renderer for earlier versions or if the native parser fails
 struct MarkdownTextCustomRenderer: View {
     let text: String
     @Environment(\.colorScheme) private var colorScheme
@@ -162,7 +162,7 @@ struct MarkdownTextCustomRenderer: View {
         .textSelection(.enabled)
     }
     
-    // Estructura para cada línea parseada
+    // Structure for each parsed line
     private struct MarkdownLine: Identifiable {
         let id = UUID()
         let text: String
@@ -174,7 +174,7 @@ struct MarkdownTextCustomRenderer: View {
         }
     }
     
-    // Parsear el texto Markdown línea por línea
+    // Parse Markdown text line by line
     private func parseMarkdownLines() -> [MarkdownLine] {
         let lines = text.components(separatedBy: "\n")
         var result: [MarkdownLine] = []
@@ -185,17 +185,17 @@ struct MarkdownTextCustomRenderer: View {
         for line in lines {
             let trimmedLine = line.trimmingCharacters(in: .whitespaces)
             
-            // Manejar bloques de código
+            // Handle code blocks
             if trimmedLine.starts(with: "```") {
                 if isInCodeBlock {
-                    // Fin del bloque de código
+                    // End of code block
                     if !codeBlockContent.isEmpty {
                         result.append(MarkdownLine(text: codeBlockContent, type: .codeBlock))
                         codeBlockContent = ""
                     }
                     isInCodeBlock = false
                 } else {
-                    // Inicio del bloque de código
+                    // Start of code block
                     isInCodeBlock = true
                 }
                 continue
@@ -206,7 +206,7 @@ struct MarkdownTextCustomRenderer: View {
                 continue
             }
             
-            // Parsear elementos de Markdown fuera de bloques de código
+            // Parse Markdown elements outside code blocks
             if trimmedLine.starts(with: "# ") {
                 let text = trimmedLine.replacingOccurrences(of: "^# ", with: "", options: .regularExpression)
                 result.append(MarkdownLine(text: text, type: .h1))
@@ -234,12 +234,12 @@ struct MarkdownTextCustomRenderer: View {
             } else if !trimmedLine.isEmpty {
                 result.append(MarkdownLine(text: trimmedLine, type: .normal))
             } else {
-                // Línea vacía - puede usarse para separar párrafos
+                // Empty line - can be used to separate paragraphs
                 result.append(MarkdownLine(text: "", type: .normal))
             }
         }
         
-        // Si quedó un bloque de código abierto
+        // If a code block was left open
         if isInCodeBlock && !codeBlockContent.isEmpty {
             result.append(MarkdownLine(text: codeBlockContent, type: .codeBlock))
         }
@@ -248,7 +248,7 @@ struct MarkdownTextCustomRenderer: View {
     }
 }
 
-// Extensión para resolver problemas de tipo al retornar vistas
+// Extension to solve type problems when returning views
 extension View {
     func eraseToAnyView() -> AnyView {
         AnyView(self)

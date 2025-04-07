@@ -25,7 +25,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
     }
     
     private func cleanupTimers() {
-        // Método dedicado para limpiar temporizadores
+        // Dedicated method to clean up timers
         if let timer = self.timer {
             timer.invalidate()
             self.timer = nil
@@ -42,17 +42,17 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
     }
     
     func startRecording() {
-        // Detener cualquier grabación existente primero
+        // Stop any existing recording first
         if isRecording {
             _ = stopRecording()
         }
         
-        // Detener cualquier reproducción existente
+        // Stop any existing playback
         if isPlaying {
             stopPlayback()
         }
         
-        // Limpiar temporizadores existentes
+        // Clean up existing timers
         cleanupTimers()
         
         let recordingSession = AVAudioSession.sharedInstance()
@@ -66,16 +66,16 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
             formatter.dateFormat = "dd-MM-yyyy HH:mm:ss"
             let dateTimeString = formatter.string(from: timestamp)
             
-            // Crear un UUID para esta grabación
+            // Create a UUID for this recording
             let recordingId = UUID()
             
-            // Crear directorio para esta grabación
+            // Create directory for this recording
             guard let recordingDirectory = createRecordingDirectory(for: recordingId) else {
-                print("Error: No se pudo crear el directorio para la grabación")
+                print("Error: Could not create directory for recording")
                 return
             }
             
-            // Guardar el archivo dentro de la carpeta específica
+            // Save the file inside the specific folder
             let audioFileName = "audio.m4a"
             let fileURL = recordingDirectory.appendingPathComponent(audioFileName)
             
@@ -96,7 +96,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
                 return
             }
             
-            // Crear un nuevo objeto AudioRecording
+            // Create a new AudioRecording object
             let newRecording = AudioRecording(
                 id: recordingId,
                 title: dateTimeString,
@@ -108,7 +108,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
             recordingTime = 0
             audioLevel = 0.0
             
-            // Iniciar temporizador para actualizar la duración con un delay para asegurar que el recorder está listo
+            // Start timer to update duration with a delay to ensure the recorder is ready
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 guard let self = self, self.isRecording else { return }
                 
@@ -117,29 +117,29 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
                     self.recordingTime = recorder.currentTime
                 }
                 
-                // Asegurar que el timer se ejecute en el modo de ejecución común
+                // Ensure the timer runs in the common run mode
                 RunLoop.current.add(self.timer!, forMode: .common)
                 
-                // Iniciar temporizador para actualizar el nivel de audio
+                // Start timer to update audio level
                 self.levelTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
                     guard let self = self, let recorder = self.audioRecorder, self.isRecording else { return }
                     
                     recorder.updateMeters()
                     
-                    // Obtener el nivel de audio del canal 0
+                    // Get audio level from channel 0
                     let level = recorder.averagePower(forChannel: 0)
                     
-                    // Convertir el nivel en dB a un valor normalizado (0-1)
-                    // Los valores de dB están típicamente entre -160 y 0
+                    // Convert dB level to a normalized value (0-1)
+                    // dB values are typically between -160 and 0
                     let normalizedLevel = max(0.0, min(1.0, (level + 60) / 60))
                     
-                    // Actualizar en el hilo principal
+                    // Update on the main thread
                     DispatchQueue.main.async {
                         self.audioLevel = normalizedLevel
                     }
                 }
                 
-                // Asegurar que el levelTimer se ejecute en el modo de ejecución común
+                // Ensure the levelTimer runs in the common run mode
                 RunLoop.current.add(self.levelTimer!, forMode: .common)
             }
             
@@ -151,7 +151,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
     }
     
     func stopRecording() -> AudioRecording? {
-        // Verificar si realmente estamos grabando
+        // Verify we are actually recording
         guard isRecording, let recorder = audioRecorder else {
             isRecording = false
             audioLevel = 0.0
@@ -159,21 +159,21 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
             return nil
         }
         
-        // Capturar la grabación antes de detener
+        // Capture the recording before stopping
         let capturedRecording = currentAudioRecording
         let capturedDuration = recordingTime
         
-        // Detener grabadora y limpiar
+        // Stop recorder and clean up
         recorder.stop()
         audioRecorder = nil
         isRecording = false
         
-        // Limpiar temporizadores
+        // Clean up timers
         cleanupTimers()
         
-        // Actualizar la duración y devolver la grabación
+        // Update duration and return the recording
         if let recording = capturedRecording {
-            // Usar let en lugar de var, y crear una nueva instancia para modificación
+            // Use let instead of var, and create a new instance for modification
             let updatedRecording = AudioRecording(
                 id: recording.id,
                 title: recording.title,
@@ -191,17 +191,17 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
     }
     
     func startPlayback(url: URL) {
-        // Detener cualquier reproducción existente
+        // Stop any existing playback
         if isPlaying {
             stopPlayback()
         }
         
-        // Imprimir la URL para depuración
-        print("Intentando reproducir archivo en: \(url.path)")
+        // Print URL for debugging
+        print("Attempting to play file at: \(url.path)")
         
-        // Verificar existencia del archivo
+        // Verify file exists
         guard FileManager.default.fileExists(atPath: url.path) else {
-            print("⚠️ ERROR: El archivo de audio no existe durante startPlayback: \(url.path)")
+            print("⚠️ ERROR: Audio file does not exist during startPlayback: \(url.path)")
             DispatchQueue.main.async {
                 self.isPlaying = false
             }
@@ -214,23 +214,23 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
             try playbackSession.setCategory(.playback, mode: .default)
             try playbackSession.setActive(true)
             
-            // Si ya tenemos un reproductor cargado, verificar si es para la misma URL
+            // If we already have a player loaded, check if it's for the same URL
             if let existingPlayer = audioPlayer, existingPlayer.url == url {
-                print("🔄 Usando reproductor existente ya preparado")
+                print("🔄 Using existing player already prepared")
                 existingPlayer.currentTime = 0
                 existingPlayer.play()
                 
                 DispatchQueue.main.async {
                     self.isPlaying = true
-                    print("✅ Reproducción iniciada con reproductor existente")
+                    print("✅ Playback started with existing player")
                 }
                 return
             }
             
-            // Crear un nuevo reproductor
+            // Create a new player
             audioPlayer = try AVAudioPlayer(contentsOf: url)
             guard let player = audioPlayer else {
-                print("No se pudo crear el reproductor de audio")
+                print("Could not create audio player")
                 return
             }
             
@@ -239,19 +239,19 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
             let success = player.play()
             
             if success {
-                // Usamos DispatchQueue para actualizar estado después de iniciar reproducción
+                // Use DispatchQueue to update state after starting playback
                 DispatchQueue.main.async {
                     self.isPlaying = true
-                    print("✅ Reproducción iniciada correctamente")
+                    print("✅ Playback started successfully")
                 }
             } else {
-                print("⚠️ El método play() devolvió false - El player está en estado inválido")
+                print("⚠️ The play() method returned false - Player is in invalid state")
                 DispatchQueue.main.async {
                     self.isPlaying = false
                 }
             }
         } catch {
-            print("❌ No se pudo reproducir el audio: \(error)")
+            print("❌ Could not play audio: \(error)")
             DispatchQueue.main.async {
                 self.isPlaying = false
             }
@@ -259,38 +259,38 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
     }
     
     func stopPlayback() {
-        // Verificar que realmente hay reproducción activa
+        // Verify there is actually active playback
         guard isPlaying, let player = audioPlayer else {
-            print("⚠️ stopPlayback: No hay reproducción activa que detener")
+            print("⚠️ stopPlayback: No active playback to stop")
             DispatchQueue.main.async {
                 self.isPlaying = false
             }
             return
         }
         
-        print("⏹️ Deteniendo reproducción explícitamente")
+        print("⏹️ Stopping playback explicitly")
         player.stop()
-        // Solo liberar recursos si realmente es necesario
-        // audioPlayer = nil // Comentado para permitir reutilización
+        // Only free resources if really necessary
+        // audioPlayer = nil // Commented to allow reuse
         
-        // Usamos DispatchQueue para actualizar estado después de detener reproducción
+        // Use DispatchQueue to update state after stopping playback
         DispatchQueue.main.async {
             self.isPlaying = false
         }
     }
     
     func prepareToPlay(url: URL, completion: @escaping (Bool, TimeInterval) -> Void) {
-        // Detener cualquier reproducción existente
+        // Stop any existing playback
         if isPlaying {
             stopPlayback()
         }
         
-        // Imprimir la URL para depuración
-        print("Preparando audio en: \(url.path)")
+        // Print URL for debugging
+        print("Preparing audio at: \(url.path)")
         
-        // Verificar existencia del archivo
+        // Verify file exists
         guard FileManager.default.fileExists(atPath: url.path) else {
-            print("⚠️ ERROR: El archivo de audio no existe durante prepareToPlay: \(url.path)")
+            print("⚠️ ERROR: Audio file does not exist during prepareToPlay: \(url.path)")
             completion(false, 0)
             return
         }
@@ -304,25 +304,25 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
             let tempPlayer = try AVAudioPlayer(contentsOf: url)
             tempPlayer.prepareToPlay()
             
-            // Registrar la duración para uso posterior
+            // Record duration for later use
             let audioDuration = tempPlayer.duration
             
-            // Asegurarnos de que tempPlayer no sea liberado antes de tiempo
+            // Make sure tempPlayer is not released too early
             self.audioPlayer = tempPlayer
             
-            print("✅ Audio preparado correctamente - Duración: \(audioDuration)s")
+            print("✅ Audio prepared successfully - Duration: \(audioDuration)s")
             completion(true, audioDuration)
         } catch {
-            print("❌ Error al preparar el audio: \(error)")
+            print("❌ Error preparing audio: \(error)")
             audioPlayer = nil
             completion(false, 0)
         }
     }
     
-    // Delegados
+    // Delegates
     func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         if !flag {
-            print("La grabación terminó con un error")
+            print("Recording finished with an error")
         }
         DispatchQueue.main.async {
             self.isRecording = false
@@ -332,15 +332,15 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
     }
     
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        print("🏁 Reproducción finalizada naturalmente")
-        // No detener inmediatamente el reproductor, permitir que se reutilice
+        print("🏁 Playback naturally finished")
+        // Don't immediately stop the player, allow it to be reused
         DispatchQueue.main.async {
             self.isPlaying = false
-            // No limpiar audioPlayer = nil aquí para permitir reutilización
+            // Don't clean up audioPlayer = nil here to allow reuse
         }
     }
     
-    // Función para crear estructura de carpetas para grabaciones
+    // Function to create folder structure for recordings
     func createRecordingDirectory(for recordingId: UUID) -> URL? {
         guard let voiceMemosURL = getVoiceMemosDirectoryURL() else {
             return nil
@@ -348,7 +348,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
         
         let recordingDirectoryURL = voiceMemosURL.appendingPathComponent(recordingId.uuidString, isDirectory: true)
         
-        // Crear directorio específico para esta grabación con su UUID
+        // Create specific directory for this recording with its UUID
         if !FileManager.default.fileExists(atPath: recordingDirectoryURL.path) {
             do {
                 try FileManager.default.createDirectory(at: recordingDirectoryURL, withIntermediateDirectories: true)
@@ -361,12 +361,12 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
         return recordingDirectoryURL
     }
 
-    // Método para obtener la URL del directorio donde se guardan las grabaciones
+    // Method to get the URL of the directory where recordings are saved
     func getVoiceMemosDirectoryURL() -> URL? {
-        // Directorio Documents
+        // Documents directory
         let documentsURL = getDocumentsDirectory()
         
-        // Crear directorio Hera principal si no existe
+        // Create main Hera directory if it doesn't exist
         let heraDirectoryURL = documentsURL.appendingPathComponent("Hera", isDirectory: true)
         if !FileManager.default.fileExists(atPath: heraDirectoryURL.path) {
             do {
@@ -377,7 +377,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
             }
         }
         
-        // Crear directorio VoiceNotes dentro de Hera
+        // Create VoiceNotes directory inside Hera
         let voiceNotesURL = heraDirectoryURL.appendingPathComponent("VoiceNotes", isDirectory: true)
         if !FileManager.default.fileExists(atPath: voiceNotesURL.path) {
             do {
@@ -391,8 +391,8 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
         return voiceNotesURL
     }
     
-    // Crear directorio Hera para archivos de procesamiento
-    // Esta es una función auxiliar para uso interno
+    // Create Hera directory for processing files
+    // This is a helper function for internal use
     func getOrCreateHeraDirectory() -> URL? {
         let documentsURL = getDocumentsDirectory()
         let heraDirectoryURL = documentsURL.appendingPathComponent("Hera", isDirectory: true)
@@ -409,166 +409,166 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
         return heraDirectoryURL
     }
     
-    // Verificar y reparar estructura de directorios
+    // Verify and repair directory structure
     func verifyAndRepairDirectoryStructure() {
-        print("📂 Verificando estructura de directorios...")
+        print("📂 Verifying directory structure...")
         
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            print("❌ No se pudo acceder al directorio de documentos")
+            print("❌ Could not access documents directory")
             return
         }
         
-        // Verificar/crear directorio Hera principal
+        // Verify/create main Hera directory
         let heraDirectoryURL = documentsDirectory.appendingPathComponent("Hera", isDirectory: true)
         
         if !FileManager.default.fileExists(atPath: heraDirectoryURL.path) {
             do {
                 try FileManager.default.createDirectory(at: heraDirectoryURL, withIntermediateDirectories: true)
-                print("✅ Creado directorio principal Hera: \(heraDirectoryURL.path)")
+                print("✅ Created main Hera directory: \(heraDirectoryURL.path)")
             } catch {
-                print("❌ Error creando directorio principal Hera: \(error)")
+                print("❌ Error creating main Hera directory: \(error)")
             }
         } else {
-            print("✓ Directorio principal Hera existe: \(heraDirectoryURL.path)")
+            print("✓ Main Hera directory exists: \(heraDirectoryURL.path)")
         }
         
-        // Verificar/crear directorio VoiceNotes dentro de Hera
+        // Verify/create VoiceNotes directory inside Hera
         let voiceNotesURL = heraDirectoryURL.appendingPathComponent("VoiceNotes", isDirectory: true)
         
         if !FileManager.default.fileExists(atPath: voiceNotesURL.path) {
             do {
                 try FileManager.default.createDirectory(at: voiceNotesURL, withIntermediateDirectories: true)
-                print("✅ Creado directorio VoiceNotes: \(voiceNotesURL.path)")
+                print("✅ Created VoiceNotes directory: \(voiceNotesURL.path)")
             } catch {
-                print("❌ Error creando directorio VoiceNotes: \(error)")
+                print("❌ Error creating VoiceNotes directory: \(error)")
             }
         } else {
-            print("✓ Directorio VoiceNotes existe: \(voiceNotesURL.path)")
+            print("✓ VoiceNotes directory exists: \(voiceNotesURL.path)")
         }
         
-        // Verificar permisos de escritura
+        // Verify write permissions
         if FileManager.default.isWritableFile(atPath: voiceNotesURL.path) {
-            print("✓ Directorio VoiceNotes tiene permisos de escritura")
+            print("✓ VoiceNotes directory has write permissions")
             
-            // Crear un archivo temporal para probar
+            // Create a temporary file to test
             let testFile = voiceNotesURL.appendingPathComponent("test_write.txt")
             do {
                 try "Test write".write(to: testFile, atomically: true, encoding: .utf8)
-                print("✓ Prueba de escritura exitosa")
+                print("✓ Write test successful")
                 
-                // Eliminar archivo temporal
+                // Delete temporary file
                 try FileManager.default.removeItem(at: testFile)
             } catch {
-                print("❌ Error en prueba de escritura: \(error)")
+                print("❌ Error in write test: \(error)")
             }
         } else {
-            print("❌ Directorio VoiceNotes no tiene permisos de escritura")
+            print("❌ VoiceNotes directory does not have write permissions")
         }
         
-        // Migrar archivos de la estructura antigua si existe
+        // Migrate files from old structure if it exists
         let oldVoiceRecordingsURL = documentsDirectory.appendingPathComponent("VoiceRecordings", isDirectory: true)
         if FileManager.default.fileExists(atPath: oldVoiceRecordingsURL.path) {
-            print("🔄 Encontrado directorio antiguo VoiceRecordings, migrando archivos...")
+            print("🔄 Found old VoiceRecordings directory, migrating files...")
             
             do {
                 let contents = try FileManager.default.contentsOfDirectory(at: oldVoiceRecordingsURL, includingPropertiesForKeys: nil)
                 
                 if contents.isEmpty {
-                    print("✓ Directorio antiguo vacío, eliminando...")
+                    print("✓ Old directory empty, deleting...")
                     try FileManager.default.removeItem(at: oldVoiceRecordingsURL)
                 } else {
-                    print("🔄 Migrando \(contents.count) elementos...")
+                    print("🔄 Migrating \(contents.count) items...")
                     
                     for itemURL in contents {
                         let destURL = voiceNotesURL.appendingPathComponent(itemURL.lastPathComponent)
                         
                         if !FileManager.default.fileExists(atPath: destURL.path) {
                             try FileManager.default.moveItem(at: itemURL, to: destURL)
-                            print("  ✓ Migrado: \(itemURL.lastPathComponent)")
+                            print("  ✓ Migrated: \(itemURL.lastPathComponent)")
                         } else {
-                            print("  ⚠️ Ya existe en destino: \(itemURL.lastPathComponent)")
+                            print("  ⚠️ Already exists in destination: \(itemURL.lastPathComponent)")
                         }
                     }
                     
-                    // Verificar si ahora está vacío para eliminar
+                    // Check if it's empty now to delete
                     let remainingContents = try FileManager.default.contentsOfDirectory(at: oldVoiceRecordingsURL, includingPropertiesForKeys: nil)
                     if remainingContents.isEmpty {
                         try FileManager.default.removeItem(at: oldVoiceRecordingsURL)
-                        print("✅ Directorio antiguo eliminado después de migración")
+                        print("✅ Old directory deleted after migration")
                     }
                 }
             } catch {
-                print("❌ Error durante la migración: \(error)")
+                print("❌ Error during migration: \(error)")
             }
         }
     }
     
-    // Método público para listar y verificar las grabaciones
+    // Public method to list and verify recordings
     func listAndVerifyRecordings() {
-        print("📊 Verificando grabaciones existentes...")
+        print("📊 Verifying existing recordings...")
         
         guard let voiceMemosURL = getVoiceMemosDirectoryURL() else {
-            print("❌ No se pudo acceder al directorio de grabaciones")
+            print("❌ Could not access recordings directory")
             return
         }
         
         do {
-            // Obtener todos los elementos en el directorio principal
+            // Get all items in the main directory
             let contents = try FileManager.default.contentsOfDirectory(at: voiceMemosURL, includingPropertiesForKeys: nil)
             
-            print("📁 Encontradas \(contents.count) carpetas de grabación.")
+            print("📁 Found \(contents.count) recording folders.")
             
-            // Verificar cada carpeta de grabación
+            // Verify each recording folder
             for folderURL in contents {
                 if folderURL.hasDirectoryPath {
                     let folderName = folderURL.lastPathComponent
-                    print("  📂 Carpeta: \(folderName)")
+                    print("  📂 Folder: \(folderName)")
                     
-                    // Listar contenidos de la carpeta
+                    // List folder contents
                     do {
                         let folderContents = try FileManager.default.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
-                        print("    📄 Contiene \(folderContents.count) archivos:")
+                        print("    📄 Contains \(folderContents.count) files:")
                         
-                        // Verificar cada archivo
+                        // Check each file
                         for fileURL in folderContents {
                             let fileName = fileURL.lastPathComponent
                             print("      - \(fileName) (\(getSizeString(for: fileURL)))")
                         }
                         
-                        // Verificar archivo de audio
+                        // Verify audio file
                         let audioURL = folderURL.appendingPathComponent("audio.m4a")
                         if FileManager.default.fileExists(atPath: audioURL.path) {
-                            print("    ✅ Archivo de audio existe")
+                            print("    ✅ Audio file exists")
                         } else {
-                            print("    ❌ Archivo de audio NO existe")
+                            print("    ❌ Audio file does NOT exist")
                         }
                         
-                        // Verificar transcripción
+                        // Verify transcription
                         let transcriptionURL = folderURL.appendingPathComponent("transcription.txt")
                         if FileManager.default.fileExists(atPath: transcriptionURL.path) {
-                            print("    ✅ Archivo de transcripción existe")
+                            print("    ✅ Transcription file exists")
                         } else {
-                            print("    ⚠️ Archivo de transcripción NO existe")
+                            print("    ⚠️ Transcription file does NOT exist")
                         }
                         
-                        // Verificar análisis
+                        // Verify analysis
                         let analysisURL = folderURL.appendingPathComponent("analysis.json")
                         if FileManager.default.fileExists(atPath: analysisURL.path) {
-                            print("    ✅ Archivo de análisis existe")
+                            print("    ✅ Analysis file exists")
                         } else {
-                            print("    ⚠️ Archivo de análisis NO existe")
+                            print("    ⚠️ Analysis file does NOT exist")
                         }
                     } catch {
-                        print("    ❌ Error al listar contenidos: \(error)")
+                        print("    ❌ Error listing contents: \(error)")
                     }
                 }
             }
         } catch {
-            print("❌ Error al listar grabaciones: \(error)")
+            print("❌ Error listing recordings: \(error)")
         }
     }
     
-    // Obtener tamaño legible de un archivo
+    // Get readable size of a file
     private func getSizeString(for fileURL: URL) -> String {
         do {
             let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
@@ -588,6 +588,6 @@ class AudioManager: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudio
         } catch {
             // Silent error
         }
-        return "tamaño desconocido"
+        return "unknown size"
     }
 } 

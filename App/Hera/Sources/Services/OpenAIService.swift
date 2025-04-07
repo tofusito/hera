@@ -6,24 +6,24 @@ class OpenAIService {
     private let chatCompletionEndpoint = "https://api.openai.com/v1/chat/completions"
     
     func transcribeAudio(fileURL: URL, apiKey: String, completion: @escaping (Result<String, Error>) -> Void) {
-        // Crear solicitud
+        // Create request
         var request = URLRequest(url: URL(string: transcriptionEndpoint)!)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         
-        // Crear fronteras para multipart form data
+        // Create boundaries for multipart form data
         let boundary = UUID().uuidString
         request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
-        // Preparar el cuerpo de la solicitud
+        // Prepare the request body
         var bodyData = Data()
         
-        // Añadir el modelo (whisper-1)
+        // Add the model (whisper-1)
         bodyData.append("--\(boundary)\r\n".data(using: .utf8)!)
         bodyData.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
         bodyData.append("whisper-1\r\n".data(using: .utf8)!)
         
-        // Añadir el archivo de audio
+        // Add the audio file
         do {
             let audioData = try Data(contentsOf: fileURL)
             bodyData.append("--\(boundary)\r\n".data(using: .utf8)!)
@@ -36,13 +36,13 @@ class OpenAIService {
             return
         }
         
-        // Finalizar el cuerpo
+        // Finalize the body
         bodyData.append("--\(boundary)--\r\n".data(using: .utf8)!)
         
-        // Asignar el cuerpo a la solicitud
+        // Assign the body to the request
         request.httpBody = bodyData
         
-        // Realizar la llamada a la API
+        // Make the API call
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 completion(.failure(error))
@@ -50,22 +50,22 @@ class OpenAIService {
             }
             
             guard let data = data else {
-                completion(.failure(NSError(domain: "OpenAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No se recibieron datos"])))
+                completion(.failure(NSError(domain: "OpenAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
                 return
             }
             
             do {
-                // Analizar respuesta JSON
+                // Parse JSON response
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
                    let text = json["text"] as? String {
                     completion(.success(text))
                 } else {
-                    // Intentar analizar error
+                    // Try to parse error
                     let errorResponse = try JSONDecoder().decode(OpenAIErrorResponse.self, from: data)
                     completion(.failure(NSError(domain: "OpenAI", code: 0, userInfo: [NSLocalizedDescriptionKey: errorResponse.error.message])))
                 }
             } catch {
-                // Si hay error al decodificar JSON, intentar mostrar el mensaje de error como texto
+                // If there's an error decoding JSON, try to show the error message as text
                 if let errorText = String(data: data, encoding: .utf8) {
                     completion(.failure(NSError(domain: "OpenAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Error: \(errorText)"])))
                 } else {
@@ -78,20 +78,20 @@ class OpenAIService {
     }
     
     func processTranscription(transcription: String, recordingId: UUID, apiKey: String, completion: @escaping (Result<String, Error>) -> Void) {
-        // Crear solicitud
+        // Create request
         var request = URLRequest(url: URL(string: chatCompletionEndpoint)!)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // Obtener la fecha actual en formato completo
+        // Get current date in full format
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .full
         dateFormatter.timeStyle = .none
-        dateFormatter.locale = Locale(identifier: "es_ES") // Usar español
+        dateFormatter.locale = Locale(identifier: "es_ES") // Use Spanish
         let currentDateString = dateFormatter.string(from: Date())
         
-        // Crear el prompt con el sistema y la transcripción
+        // Create the prompt with system and transcription
         let systemPrompt = """
         You are an assistant that analyzes transcribed voice notes and returns structured information in JSON format.
 
@@ -121,9 +121,9 @@ class OpenAIService {
         - Today is \(currentDateString). Use this as reference for relative dates.
         """
         
-        // Crear el cuerpo JSON
+        // Create JSON body
         let requestBody: [String: Any] = [
-            "model": "gpt-4o", // modelo actualizado a gpt-4o
+            "model": "gpt-4o", // updated model to gpt-4o
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": "Transcription input: \(transcription)"]
@@ -131,7 +131,7 @@ class OpenAIService {
             "temperature": 0.7
         ]
         
-        // Convertir el cuerpo a JSON
+        // Convert body to JSON
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         } catch {
@@ -139,7 +139,7 @@ class OpenAIService {
             return
         }
         
-        // Realizar la llamada a la API
+        // Make the API call
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 completion(.failure(error))
@@ -147,15 +147,15 @@ class OpenAIService {
             }
             
             guard let data = data else {
-                completion(.failure(NSError(domain: "OpenAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No se recibieron datos"])))
+                completion(.failure(NSError(domain: "OpenAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
                 return
             }
             
-            // Guardar la respuesta cruda y la transcripción original
+            // Save the raw response and original transcription
             self.saveDataToFiles(recordingId: recordingId, transcription: transcription, responseData: data)
             
             do {
-                // Analizar respuesta JSON
+                // Parse JSON response
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
                    let choices = json["choices"] as? [[String: Any]],
                    let firstChoice = choices.first,
@@ -163,12 +163,12 @@ class OpenAIService {
                    let content = message["content"] as? String {
                     completion(.success(content))
                 } else {
-                    // Intentar analizar error
+                    // Try to parse error
                     let errorResponse = try JSONDecoder().decode(OpenAIErrorResponse.self, from: data)
                     completion(.failure(NSError(domain: "OpenAI", code: 0, userInfo: [NSLocalizedDescriptionKey: errorResponse.error.message])))
                 }
             } catch {
-                // Si hay error al decodificar JSON, intentar mostrar el mensaje de error como texto
+                // If there's an error decoding JSON, try to show the error message as text
                 if let errorText = String(data: data, encoding: .utf8) {
                     completion(.failure(NSError(domain: "OpenAIService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Error: \(errorText)"])))
                 } else {
@@ -181,18 +181,18 @@ class OpenAIService {
     }
     
     private func saveDataToFiles(recordingId: UUID, transcription: String, responseData: Data) {
-        // Obtener la URL del directorio para esta grabación específica
+        // Get the URL of the directory for this specific recording
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            print("Error: No se pudo acceder al directorio de documentos")
+            print("Error: Could not access documents directory")
             return
         }
         
-        // Usar la misma estructura de directorios que AudioManager
+        // Use the same directory structure as AudioManager
         let heraDirectory = documentsDirectory.appendingPathComponent("Hera", isDirectory: true)
         let voiceNotesDirectory = heraDirectory.appendingPathComponent("VoiceNotes", isDirectory: true)
         let recordingDirectory = voiceNotesDirectory.appendingPathComponent(recordingId.uuidString, isDirectory: true)
         
-        // Verificar/crear directorios si no existen
+        // Verify/create directories if they don't exist
         if !FileManager.default.fileExists(atPath: heraDirectory.path) {
             do {
                 try FileManager.default.createDirectory(at: heraDirectory, withIntermediateDirectories: true)
@@ -211,7 +211,7 @@ class OpenAIService {
             }
         }
         
-        // Crear directorio de grabación si no existe
+        // Create recording directory if it doesn't exist
         if !FileManager.default.fileExists(atPath: recordingDirectory.path) {
             do {
                 try FileManager.default.createDirectory(at: recordingDirectory, withIntermediateDirectories: true)
@@ -224,7 +224,7 @@ class OpenAIService {
             print("📁 Using existing directory: \(recordingDirectory.path)")
         }
         
-        // Guardar la transcripción original
+        // Save the original transcription
         let transcriptionURL = recordingDirectory.appendingPathComponent("transcription.txt")
         do {
             try transcription.write(to: transcriptionURL, atomically: true, encoding: .utf8)
@@ -233,7 +233,7 @@ class OpenAIService {
             print("❌ Error saving transcription: \(error)")
         }
         
-        // Guardar la respuesta cruda de la API
+        // Save the raw API response
         let responseURL = recordingDirectory.appendingPathComponent("analysis.json")
         do {
             try responseData.write(to: responseURL)
@@ -244,7 +244,7 @@ class OpenAIService {
     }
 }
 
-// Estructura para decodificar respuestas de error de OpenAI
+// Structure to decode OpenAI error responses
 struct OpenAIErrorResponse: Decodable {
     struct ErrorDetails: Decodable {
         let message: String

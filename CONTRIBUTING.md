@@ -1,62 +1,62 @@
-# Contribuir a Hera
+# Contributing to Hera
 
-¡Gracias por tu interés en contribuir a Hera! Este documento proporciona información sobre cómo contribuir al proyecto.
+Thank you for your interest in contributing to Hera! This document provides information on how to contribute to the project.
 
-## Estructura del Proyecto
+## Project Structure
 
-El proyecto está organizado de la siguiente manera:
+The project is organized as follows:
 
 ```
-App/                          # Directorio principal de la aplicación
-├── Hera.xcodeproj/           # Archivo de proyecto Xcode
-├── Hera/                     # Código principal de la app
+App/                          # Main application directory
+├── Hera.xcodeproj/           # Xcode project file
+├── Hera/                     # Main app code
 │   ├── Sources/
-│   │   ├── App/              # Punto de entrada de la aplicación
-│   │   ├── Models/           # Modelos de datos
-│   │   ├── Views/            # Vistas de SwiftUI
-│   │   ├── Services/         # Servicios (OpenAI, Audio, etc.)
-│   │   ├── Utils/            # Utilidades comunes
-│   │   └── Extensions/       # Extensiones de Swift/UIKit
-│   ├── Assets.xcassets/      # Recursos gráficos de la aplicación
-│   ├── Info.plist            # Configuración de la aplicación
-│   └── Hera.entitlements     # Entitlements de la aplicación
-├── HeraTests/                # Tests unitarios
-├── HeraUITests/              # Tests de UI
-└── Resources/                # Recursos de la aplicación
-    ├── Banner/               # Imágenes de banner para el README
-    └── Icon/                 # Iconos de la aplicación
+│   │   ├── App/              # App entry point
+│   │   ├── Models/           # Data models
+│   │   ├── Views/            # SwiftUI views
+│   │   ├── Services/         # Services (OpenAI, Audio, etc.)
+│   │   ├── Utils/            # Common utilities
+│   │   └── Extensions/       # Swift/UIKit extensions
+│   ├── Assets.xcassets/      # App graphic resources
+│   ├── Info.plist            # App configuration
+│   └── Hera.entitlements     # App entitlements
+├── HeraTests/                # Unit tests
+├── HeraUITests/              # UI tests
+└── Resources/                # App resources
+    ├── Banner/               # Banner images for README
+    └── Icon/                 # App icons
 ```
 
-## Directrices de Código
+## Code Guidelines
 
-- Usa SwiftUI para las interfaces de usuario cuando sea posible
-- Sigue la arquitectura MVVM (Model-View-ViewModel)
-- Usa servicios para operaciones complejas o de red
-- Comenta tu código adecuadamente
-- Escribe nombres descriptivos para variables y funciones
+- Use SwiftUI for user interfaces when possible
+- Follow the MVVM (Model-View-ViewModel) architecture
+- Use services for complex or network operations
+- Comment your code appropriately
+- Write descriptive names for variables and functions
 
-## Proceso de Pull Request
+## Pull Request Process
 
-1. Crea un fork del repositorio
-2. Crea una rama con un nombre descriptivo
-3. Realiza tus cambios
-4. Asegúrate de que los tests pasan
-5. Envía un Pull Request con una descripción clara de los cambios
+1. Fork the repository
+2. Create a branch with a descriptive name
+3. Make your changes
+4. Ensure tests pass
+5. Submit a Pull Request with a clear description of the changes
 
-## Convenciones de Commit
+## Commit Conventions
 
-Por favor, sigue estas convenciones para los mensajes de commit:
+Please follow these conventions for commit messages:
 
-- `feat`: Nueva característica
-- `fix`: Corrección de un bug
-- `docs`: Cambios en la documentación
-- `style`: Formateo, punto y coma faltantes, etc.
-- `refactor`: Refactorización del código
-- `test`: Añadir o refactorizar tests
-- `chore`: Cambios en el proceso de build, herramientas, etc.
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Formatting, missing semicolons, etc.
+- `refactor`: Code refactoring
+- `test`: Adding or refactoring tests
+- `chore`: Changes to the build process, tools, etc.
 
-Ejemplo: `feat: añadir detección de calendario en transcripciones`
+Example: `feat: add calendar detection in transcriptions`
 
-## Licencia
+## License
 
-Al contribuir a este proyecto, aceptas que tus contribuciones serán licenciadas bajo la misma licencia MIT que cubre el proyecto. 
+By contributing to this project, you agree that your contributions will be licensed under the same MIT license that covers the project. 
