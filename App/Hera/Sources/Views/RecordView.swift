@@ -20,7 +20,7 @@ struct RecordView: View {
                 .ignoresSafeArea()
             
             VStack {
-                // Botón de retroceso en la esquina superior izquierda
+                // Back button in the upper left corner
                 HStack {
                     Button {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
@@ -46,7 +46,7 @@ struct RecordView: View {
                 
                 Spacer()
                 
-                // Visualización del tiempo centrada con animación
+                // Centered time display with animation
                 Text(formatTime(audioManager.recordingTime))
                     .font(.system(size: 80, weight: .thin))
                     .monospacedDigit()
@@ -63,7 +63,7 @@ struct RecordView: View {
                         recordingPulse = isRecording
                     }
                 
-                // Añadir indicador visual de que está grabando
+                // Add visual indicator that it's recording
                 if audioManager.isRecording {
                     HStack(spacing: 20) {
                         Circle()
@@ -72,7 +72,7 @@ struct RecordView: View {
                             .scaleEffect(recordingPulse ? 1.1 : 0.9)
                             .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: recordingPulse)
                         
-                        Text("Grabando")
+                        Text("Recording")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText)
                     }
@@ -82,7 +82,7 @@ struct RecordView: View {
                 
                 Spacer()
                 
-                // Botón principal de grabación con fondo adaptativo y animaciones
+                // Main recording button with adaptive background and animations
                 Button {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                         recordingButtonPressed = true
@@ -95,7 +95,7 @@ struct RecordView: View {
                         }
                     }
                     
-                    // Reset del estado de pulsación del botón
+                    // Reset button press state
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                             buttonScale = 1.0
@@ -104,14 +104,14 @@ struct RecordView: View {
                     }
                 } label: {
                     ZStack {
-                        // Fondo exterior con efecto de material y sombra
+                        // Outer background with material effect and shadow
                         Circle()
                             .fill(.ultraThinMaterial)
                             .frame(width: 90, height: 90)
                             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.15), 
                                     radius: 8, x: 0, y: 3)
                         
-                        // Círculo interior principal
+                        // Main inner circle
                         Circle()
                             .fill(colorScheme == .dark ? Color.gray.opacity(0.3) : AppColors.buttonBackground)
                             .frame(width: 80, height: 80)
@@ -120,7 +120,7 @@ struct RecordView: View {
                                     .stroke(colorScheme == .dark ? Color.white.opacity(0.7) : Color.white.opacity(0.3), lineWidth: 1.5)
                             )
                         
-                        // Elemento central que cambia entre grabación y pausa
+                        // Central element that changes between recording and pause
                         if audioManager.isRecording {
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(colorScheme == .dark ? Color.white : AppColors.primaryText)
@@ -141,9 +141,9 @@ struct RecordView: View {
             }
         }
         .onAppear {
-            // Solo verificamos permisos si no estamos en modo de vista previa
+            // Only check permissions if not in preview mode
             #if DEBUG
-            // No verificar permisos en vista previa
+            // Do not check permissions in preview
             #else
             checkMicrophonePermission()
             #endif
@@ -160,7 +160,7 @@ struct RecordView: View {
         } message: {
             Text("To record audio, you must allow access to the microphone in the settings.")
         }
-        .tint(AppColors.adaptiveTint) // Color de acento adaptativo
+        .tint(AppColors.adaptiveTint) // Adaptive accent color
     }
     
     private func checkMicrophonePermission() {
@@ -201,7 +201,7 @@ struct RecordView: View {
         do {
             try modelContext.save()
         } catch {
-            print("Error al guardar la grabación: \(error)")
+            print("Error saving the recording: \(error)")
         }
     }
     
@@ -212,15 +212,15 @@ struct RecordView: View {
     }
 }
 
-// Clase mock para usar en previews
+// Mock class for previews
 class MockAudioManager: AudioManager {
     override func startRecording() {
-        // No hacer nada en la vista previa
+        // Do nothing in preview
         print("Mock: startRecording")
     }
     
     override func stopRecording() -> AudioRecording? {
-        // No hacer nada en la vista previa
+        // Do nothing in preview
         print("Mock: stopRecording")
         return nil
     }
@@ -232,7 +232,7 @@ struct RecordViewPreview: PreviewProvider {
         do {
             modelContainer = try ModelContainer(for: AudioRecording.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         } catch {
-            fatalError("Error creando el ModelContainer: \(error)")
+            fatalError("Error creating ModelContainer: \(error)")
         }
         
         let mockManager = MockAudioManager()
