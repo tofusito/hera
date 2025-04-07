@@ -1,105 +1,159 @@
-# 🐾 Hera – Your Voice, Reimagined
+# 🐾 Hera – Your Voice, Turned Into Action
 
-![Hera Logo](https://via.placeholder.com/150x150.png?text=Hera)
+<p align="center">
+  <img src="Resources/Icon/icon.png" alt="Hera Logo" width="150" />
+</p>
 
-**Minimalist AI voice note app, lovingly inspired by a tuxedo cat named Hera.**  
-Capture your thoughts. Summarize them effortlessly. Let your voice become action.
+<p align="center">
+  <a href="https://www.buymeacoffee.com/tofusito"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-lightgrey" alt="Buy Me A Coffee" /></a>
+  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/made%20with-Swift-orange" alt="Swift">
+</p>
+
+**Minimalist AI voice note app, lovingly inspired by a tuxedo cat.**  
+Capture your thoughts. Convert them into documents. Organize your life.
 
 ---
 
 ## ✨ What is Hera?
 
-**Hera** is an iOS voice recording app that goes beyond just storing audio.  
-It listens, thinks, and helps you organize your thoughts — all with the elegance and intuition of the cat who inspired it.
+**Hera** is more than a voice recording app.  
+It’s your intelligent, cat-powered productivity assistant — turning messy voice notes into structured documents, reminders, and calendar events — all in a calming, minimalist UI.
 
-Yes, a cat.
-
-Named after *Hera*, my tuxedo cat who’s been my quiet companion through chaos and calm, this app is a tribute to attention, presence, and clarity.
+Inspired by Hera, my feline muse with perfect listening skills and zero tolerance for chaos, this app brings clarity to your thoughts and purrfection to your day.
 
 ---
 
-## 🎯 Features at a Glance
+## 🧠 What Can Hera Do?
 
-- 🎙️ **Crystal-clear voice recording** with real-time visual feedback  
-- 📝 **AI-powered transcription** using top-tier language models  
-- 🧠 **Smart summarization** to extract key points  
-- 📅 **Automatic detection of events, tasks & reminders**  
-- 🐾 **Minimal, distraction-free UI** inspired by Hera's serene presence  
-- 💾 **Import audio files** and organize them effortlessly  
-- 🌗 **Dark & light mode** with dynamic pawprint themes  
-
----
-
-## 🧠 Powered by Tech You Can Trust
-
-- **Swift & SwiftUI** – modern, sleek, native iOS framework  
-- **AVFoundation** – reliable audio input/output  
-- **SwiftData** – efficient local storage  
-- **AI APIs** – Plug-and-play support for OpenAI, Claude, Gemini  
-- **Custom logic for filesystem + DB sync** – because chaos isn’t cute  
-
----
-
-## 🐱 Why Hera?
-
-Because building yet another notes app was *boring*.  
-Hera was always listening when I wasn’t. Now, this app does the same.  
-No ads. No noise. Just your voice, distilled into something useful — with a touch of feline clarity.
+- 🎙️ Record voice notes with visual feedback and high quality  
+- 📝 Transcribe your recordings using OpenAI  
+- 🧾 Generate full documents from your ramblings – summaries, structured notes, even meeting minutes  
+- 📅 Detect calendar events and to-dos and suggest adding them to your system  
+- 📤 Integrate with iOS Calendar & Reminders in one tap  
+- 💾 Import audio from other sources and process it like magic  
+- 🎨 Minimalist interface inspired by Hera’s quiet dignity  
+- 🌗 Dark and light mode with adaptive pawprint themes
 
 ---
 
 ## ☕ Help Bring Hera to the App Store
 
-Right now, Hera lives on my iPhone, like a secret productivity tool I can’t share.  
-But I want to release it for **everyone** — minimalists, voice note addicts, anxious creatives, even dog people.
+Currently, Hera lives only on my iPhone, silently judging me and saving my productivity.
 
-**Apple charges 99€ a year to join the developer program.**  
-So I’m raising funds to make it happen.
+But to release it to the world, I need to join the Apple Developer Program (99€/year – yes, I cried too).
 
-### 👉 [Buy me a coffee and help Hera pounce onto the App Store](https://www.buymeacoffee.com/tofusito)
+If this app sounds useful, charming, or at least less annoying than your own brain, consider supporting the launch:
 
-![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)
+### 👉 [Buy me a coffee so Hera can go global](https://www.buymeacoffee.com/tofusito)
 
-Your support helps cover the cost of:
-- 💸 Apple Dev Program fee  
-- 🐛 Bug hunting snacks (for me, not Hera)  
-- 🎨 Ongoing design tweaks & cat-themed polish  
-- 🧪 Beta testing & community building  
+<p align="center">
+  <a href="https://www.buymeacoffee.com/tofusito">
+    <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" width="200"/>
+  </a>
+</p>
 
----
-
-## 🚀 Roadmap (aka: Dreams in Progress)
-
-- ✨ Local AI model support (offline mode)  
-- ☁️ iCloud sync for recordings  
-- 🔁 Sharing recordings + summaries with friends  
-- 🐈‍⬛ Animated Hera reactions to your tone (don’t ask)  
-- 📦 Export to Notion, Markdown, PDF  
-- 🌍 Multilingual transcription
+**Your support helps me:**
+- 🚀 Publish the app on the App Store  
+- 🧪 Add new features, polish existing ones  
+- 🐛 Feed the developer (me, not Hera)  
+- 🧼 Keep the UX clean and cat-approved
 
 ---
 
-## 📦 Getting Started (Developers)
+## 🛠️ Tech Stack & Architecture
 
-1. Clone this repo
-2. Open in Xcode 15+
-3. Configure your AI API keys
-4. Build & run on device (free provisioning works!)
+### 🔧 Core Technologies
+
+- Swift & SwiftUI – for beautiful native UI  
+- SwiftData – clean local data persistence  
+- AVFoundation – audio recording & playback  
+- OpenAI API – for transcription, summarization, and content generation
+
+### 📂 File Structure
+
+Each recording is stored in a self-contained folder:
+
+```
+UUID/
+├── audio.m4a
+├── transcription.txt
+├── document.md
+└── analysis.json
+```
+
+### 🧩 MVVM Structure
+
+- `AudioRecording`: SwiftData model for voice notes  
+- `DisplayableRecording`: View-ready struct with metadata  
+- `AudioManager`: Handles recording, playback, folder structure  
+- `TranscriptionService`: Sends audio to AI and parses response  
+- `InsightEngine`: Suggests calendar events, reminders, and actions
 
 ---
 
-## 📜 License
+## 💡 Smart Features
 
-MIT – do whatever you want, just don’t sell it and claim you’re the cat whisperer who made this.
+### 🧾 Document Generation
+
+Turn voice notes into:
+- Blog drafts  
+- Meeting minutes  
+- Daily journals  
+- Cleanly formatted Markdown documents
+
+### 📆 Event & Reminder Detection
+
+Say things like “remind me to call Alex on Friday” or “meeting at 3pm with Marta” and Hera will:
+- Detect it  
+- Suggest it  
+- Let you add it to your Calendar or Reminders with one tap
+
+### 🌈 Adaptive UI
+
+- Light/Dark mode with cat-themed details  
+- Pawprint icon shifts color based on system appearance  
+- Smooth visualizers while recording/playback
 
 ---
 
-## 🙌 Credits
+## 🚀 Getting Started
 
-- Apple – for tools that almost make me want to pay 99€  
-- OpenAI, Google, Anthropic – for letting my app pretend it’s smart  
-- Hera – for being the boss of me and this project
+1. Clone the repo  
+2. Open in Xcode  
+3. Add your OpenAI API key  
+4. Build & run on device (free provisioning is supported!)
+
+> 🧠 **Note on API Keys**  
+> Hera does not come with any AI API keys included.  
+> You’ll need to generate your own API key from [OpenAI](https://platform.openai.com/account/api-keys) and paste it into the app’s settings screen.  
+> Your key is stored locally on your device — never uploaded or shared — and can be removed anytime.
 
 ---
 
-*Made with too much love, and just enough caffeine, by [Manuel Jesús Gutiérrez Fernández](https://www.buymeacoffee.com/tofusito)*  
+## 🐈 Who’s Hera?
+
+Hera is my tuxedo cat. She listens more than most humans.  
+She inspired this app with her calm presence, sharp focus, and general refusal to tolerate nonsense.  
+So I built an app that pays attention like she does.
+
+---
+
+## 🛣️ What’s Next?
+
+- ☁️ iCloud sync  
+- 📄 Export to PDF  
+- 🔗 Share recordings & docs with friends  
+- 🐈 Animated Hera mood tracker (yes, seriously)
+
+---
+
+## 📝 License
+
+MIT – use it, fork it, just don’t sell it and call it your cat.
+
+---
+
+**Made with ❤️, 🍵 and 🐾 by [Manuel Gutiérrez](https://www.buymeacoffee.com/tofusito)**
+
