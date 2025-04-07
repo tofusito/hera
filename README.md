@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://www.buymeacoffee.com/tofusito"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-lightgrey" alt="Buy Me A Coffee" /></a>
   <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/license-Custom-green" alt="License">
   <img src="https://img.shields.io/badge/made%20with-Swift-orange" alt="Swift">
 </p>
 
@@ -99,7 +99,6 @@ Each recording is stored in a self-contained folder:
 ```UUID/
 ├── audio.m4a
 ├── transcription.txt
-├── document.md
 └── analysis.json
 ```
 
@@ -108,8 +107,8 @@ Each recording is stored in a self-contained folder:
 - `AudioRecording`: SwiftData model for voice notes  
 - `DisplayableRecording`: View-ready struct with metadata  
 - `AudioManager`: Handles recording, playback, folder structure  
-- `TranscriptionService`: Sends audio to AI and parses response  
-- `InsightEngine`: Suggests calendar events, reminders, and actions
+- `OpenAIService`: Sends audio to AI and parses response  
+- `CalendarManager`: Manages calendar events and reminders integration
 
 ---
 
@@ -148,21 +147,13 @@ Say things like "remind me to call Alex on Friday" or "meeting at 3pm with Marta
 
 2. Open the project in Xcode
    ```bash
-   # Option 1: Use the convenience script
-   ./open.sh
-   
-   # Option 2: Open manually
    open App/Hera.xcodeproj
    ```
 
-3. Setup your OpenAI API key
-   - Create a file named `APIKeys.swift` in `Hera/Sources/Utils/`
-   - Add your API key as shown in the example template:
-   ```swift
-   struct APIKeys {
-       static let openAI = "your-openai-api-key-here"
-   }
-   ```
+3. OpenAI API key configuration
+   - The app includes a settings screen to configure your OpenAI API key directly
+   - You'll be prompted to add your API key when attempting to transcribe a recording
+   - API keys are securely stored in the device's keychain
 
 4. Build and run the project (⌘+R)
 
@@ -228,7 +219,7 @@ Contributions are welcome! Please check out our [Contributing Guidelines](CONTRI
 
 ## 📝 License
 
-MIT – use it, fork it, just don't sell it and call it your cat.
+Custom license - Source code is available for viewing and educational purposes, but commercial usage and distribution rights are reserved by the author. See the [LICENSE](LICENSE) file for details.
 
 ---
 
