@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Resources/Banner/banner.png" alt="Hera Banner" width="600" />
+</p>
+
 # 🐾 Hera – Your Voice, Turned Into Action
 
 <p align="center">
