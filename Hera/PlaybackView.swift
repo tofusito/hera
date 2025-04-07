@@ -2133,6 +2133,7 @@ struct AnalyzedNotesListView: View {
 struct NoteDetailFullScreenView: View {
     let note: PlaybackAnalyzedNote
     @State private var showCopiedMessage: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
     
     // Convertir el resumen a formato markdown
     private var markdownContent: String {
@@ -2162,12 +2163,31 @@ struct NoteDetailFullScreenView: View {
                 
                 Divider()
                 
-                // Contenido del resumen - MUY SIMPLIFICADO Y DIRECTO
-                Text(note.summary)
-                    .font(.body)
-                    .lineSpacing(8)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                // Contenido del resumen
+                if note.summary.isEmpty {
+                    Text("No hay contenido disponible para esta nota")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.black.opacity(0.1))
+                        .cornerRadius(8)
+                } else {
+                    Text(note.summary)
+                        .font(.body)
+                        .lineSpacing(8)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(colorScheme == .dark ? Color.black : Color.white)
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(colorScheme == .dark ? Color.gray : Color.gray.opacity(0.5), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+                        .textSelection(.enabled)
+                }
                 
                 Divider()
                 
@@ -2180,50 +2200,53 @@ struct NoteDetailFullScreenView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                // Botón para copiar al portapapeles
-                Button(action: {
-                    UIPasteboard.general.string = markdownContent
+                // Botón para copiar al portapapeles con posición fija en la esquina inferior derecha
+                ZStack(alignment: .bottomTrailing) {
+                    Color.clear
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.bottom, 80) // Espacio para que no tape el botón
                     
-                    withAnimation {
-                        showCopiedMessage = true
-                    }
-                    
-                    // Ocultar el mensaje después de 2 segundos
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    Button(action: {
+                        UIPasteboard.general.string = markdownContent
+                        
                         withAnimation {
-                            showCopiedMessage = false
+                            showCopiedMessage = true
+                        }
+                        
+                        // Ocultar el mensaje después de 2 segundos
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation {
+                                showCopiedMessage = false
+                            }
+                        }
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue)
+                                .frame(width: 56, height: 56)
+                                .shadow(radius: 4)
+                            
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 24))
+                                .foregroundColor(.white)
                         }
                     }
-                }) {
-                    HStack {
-                        Image(systemName: "doc.on.doc")
-                        Text("Copiar al portapapeles")
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        Capsule()
-                            .fill(Color.blue.opacity(0.1))
-                    )
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 20)
                     .overlay(
-                        Capsule()
-                            .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                        Text("¡Copiado!")
+                            .font(.caption)
+                            .padding(8)
+                            .background(Color.black.opacity(0.7))
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            .offset(y: -50)
+                            .opacity(showCopiedMessage ? 1 : 0)
                     )
                 }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, 16)
-                .overlay(
-                    Text("¡Copiado!")
-                        .font(.caption)
-                        .padding(6)
-                        .background(Color.blue.opacity(0.2))
-                        .cornerRadius(4)
-                        .offset(y: -30)
-                        .opacity(showCopiedMessage ? 1 : 0)
-                )
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 30)
+            .padding(.bottom, 100) // Espacio adicional al final
         }
         .navigationTitle(note.title)
         .navigationBarTitleDisplayMode(.large)

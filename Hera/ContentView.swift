@@ -346,7 +346,7 @@ struct ContentView: View {
             }
             .scrollIndicators(.hidden)
         }
-        .onChange(of: searchText) { _, newValue in
+        .onChange(of: searchText) { newValue in
             filterRecordings()
         }
     }
@@ -966,51 +966,59 @@ struct NotesListView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @State private var analyzedNotes: [AnalyzedNote] = []
-    @State private var selectedNote: AnalyzedNote?
-    @State private var showDetail: Bool = false
-    @State private var searchText: String = ""
-    @State private var isLoading: Bool = true
+    @State private var searchText = ""
+    @State private var isLoading = true
+    @State private var selectedNote: AnalyzedNote? = nil
+    @State private var showDetailView = false
     
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background color in dark mode
-                Color("Background")
-                    .edgesIgnoringSafeArea(.all)
+                Color("Background").ignoresSafeArea()
                 
-                if isLoading {
-                    ProgressView("Loading notes...")
-                } else if analyzedNotes.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "note.text")
-                            .font(.system(size: 50))
-                            .foregroundColor(.gray)
-                        Text("No analyzed notes found")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-                    }
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            ForEach(analyzedNotes) { note in
-                                NoteCell(note: note)
-                                    .contentShape(Rectangle())
-                                    .shadow(color: colorScheme == .dark ?
-                                            Color.black.opacity(0.08) :
-                                            Color.black.opacity(0.12),
-                                            radius: 3, x: 0, y: 2)
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 2)
-                                    .onTapGesture {
-                                        selectedNote = note
-                                        showDetail = true
-                                    }
-                            }
+                VStack {
+                    if isLoading {
+                        ProgressView("Cargando notas...")
+                            .padding()
+                    } else if analyzedNotes.isEmpty {
+                        VStack(spacing: 20) {
+                            Image(systemName: "note.text")
+                                .font(.system(size: 50))
+                                .foregroundColor(.gray)
+                            
+                            Text("No hay notas")
+                                .font(.title2)
+                                .foregroundColor(.gray)
+                            
+                            Text("Las notas aparecerán aquí después de procesar tus grabaciones")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
                         }
-                        .padding(.vertical)
+                        .padding()
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(analyzedNotes) { note in
+                                    NoteCell(note: note)
+                                        .contentShape(Rectangle())
+                                        .shadow(color: Color.black.opacity(0.12),
+                                                radius: 3, x: 0, y: 2)
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 2)
+                                        .onTapGesture {
+                                            print("🔍 Nota seleccionada: \(note.title)")
+                                            selectedNote = note
+                                            showDetailView = true
+                                        }
+                                }
+                            }
+                            .padding(.vertical)
+                        }
+                        .searchable(text: $searchText, prompt: "Search notes")
+                        .scrollIndicators(.hidden)
                     }
-                    .searchable(text: $searchText, prompt: "Search notes")
-                    .scrollIndicators(.hidden)
                 }
             }
             .navigationTitle("My Notes")
@@ -1026,14 +1034,27 @@ struct NotesListView: View {
             .onAppear {
                 loadNotes()
             }
-            .sheet(isPresented: $showDetail) {
-                if let note = selectedNote {
-                    NoteDetailView(note: note)
-                }
-            }
-            .onChange(of: searchText) { _, newValue in
+            .onChange(of: searchText) { newValue in
                 // Filter notes when search text changes
                 filterNotes()
+            }
+            .fullScreenCover(item: $selectedNote) { note in
+                NavigationStack {
+                    NoteDetailView(note: note)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button("Cerrar") {
+                                    selectedNote = nil
+                                }
+                            }
+                            ToolbarItem(placement: .principal) {
+                                Text("Nota")
+                                    .font(.headline)
+                            }
+                        }
+                }
+                .accentColor(AppColors.adaptiveTint)
             }
         }
         .tint(AppColors.adaptiveTint)
@@ -1047,7 +1068,8 @@ struct NotesListView: View {
             // Filter by search term if it exists
             let filteredNotes = searchText.isEmpty ? notes : notes.filter { 
                 $0.title.localizedCaseInsensitiveContains(searchText) || 
-                $0.summary.localizedCaseInsensitiveContains(searchText)
+                $0.summary.localizedCaseInsensitiveContains(searchText) ||
+                $0.suggestedTitle.localizedCaseInsensitiveContains(searchText)
             }
             
             // Sort by date, most recent first
@@ -1068,7 +1090,8 @@ struct NotesListView: View {
             // Filter by search term if it exists
             let filteredNotes = searchText.isEmpty ? notes : notes.filter { 
                 $0.title.localizedCaseInsensitiveContains(searchText) || 
-                $0.summary.localizedCaseInsensitiveContains(searchText)
+                $0.summary.localizedCaseInsensitiveContains(searchText) ||
+                $0.suggestedTitle.localizedCaseInsensitiveContains(searchText)
             }
             
             // Sort by date, most recent first
@@ -1079,6 +1102,14 @@ struct NotesListView: View {
                 self.isLoading = false
             }
         }
+    }
+    
+    // Format date
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
     
     // Function to load notes from filesystem
@@ -1098,16 +1129,6 @@ struct NotesListView: View {
         // Verify if directory exists
         guard FileManager.default.fileExists(atPath: voiceNotesDirectory.path) else {
             print("❌ VoiceNotes directory does not exist: \(voiceNotesDirectory.path)")
-            // Try listing directories in the Hera folder for diagnostics
-            do {
-                let heraContents = try FileManager.default.contentsOfDirectory(at: heraDirectory, includingPropertiesForKeys: nil)
-                print("📁 Hera directory contents:")
-                for item in heraContents {
-                    print("   - \(item.lastPathComponent)")
-                }
-            } catch {
-                print("❌ Error listing Hera contents: \(error)")
-            }
             return []
         }
         
@@ -1120,98 +1141,63 @@ struct NotesListView: View {
             print("📁 Found \(folderURLs.count) folders in VoiceNotes")
             
             for folderURL in folderURLs {
+                // Extract file metadata to get date
+                let attributes = try FileManager.default.attributesOfItem(atPath: folderURL.path)
+                let creationDate = attributes[.creationDate] as? Date ?? Date()
+                
                 // For each folder, check if analysis.json file exists
                 let analysisURL = folderURL.appendingPathComponent("analysis.json")
                 
                 if FileManager.default.fileExists(atPath: analysisURL.path) {
-                    print("📄 Found analysis.json file in: \(folderURL.lastPathComponent)")
+                    print("📄 Procesando archivo: \(analysisURL.lastPathComponent) en \(folderURL.lastPathComponent)")
                     
                     do {
                         // Read file content
                         let analysisData = try Data(contentsOf: analysisURL)
-                        print("📊 analysis.json file size: \(analysisData.count) bytes")
+                        let rawContent = String(data: analysisData, encoding: .utf8) ?? ""
                         
-                        // Print raw content for debugging
-                        if let rawContent = String(data: analysisData, encoding: .utf8) {
-                            print("📝 Raw analysis.json content (first 200 characters): \(String(rawContent.prefix(200)))...")
-                        }
+                        print("📄 Tamaño del archivo: \(analysisData.count) bytes")
                         
-                        // Try to decode the JSON
-                        if let content = try? JSONSerialization.jsonObject(with: analysisData) as? [String: Any],
-                           let choices = content["choices"] as? [[String: Any]],
-                           let firstChoice = choices.first,
-                           let message = firstChoice["message"] as? [String: Any],
-                           let messageContent = message["content"] as? String {
-                            
-                            // Print content for debugging
-                            print("📄 Message content: \(messageContent.prefix(200))...")
-                            
-                            // Try to extract JSON object from content
-                            if let jsonStart = messageContent.range(of: "{"),
-                               let jsonEnd = messageContent.range(of: "}", options: .backwards) {
-                                
-                                let jsonRange = jsonStart.lowerBound..<jsonEnd.upperBound
-                                let jsonString = String(messageContent[jsonRange])
-                                
-                                print("📄 Extracted JSON: \(jsonString.prefix(200))...")
-                                
-                                if let jsonData = jsonString.data(using: .utf8),
-                                   let analysisResult = try? JSONDecoder().decode(AnalysisResult.self, from: jsonData) {
-                                    
-                                    print("✅ Successful decoding! Title: \(analysisResult.suggestedTitle ?? "Untitled")")
-                                    print("✅ Summary length: \(analysisResult.summary.count) characters")
-                                    
-                                    // Extract file metadata to get date
-                                    let attributes = try FileManager.default.attributesOfItem(atPath: analysisURL.path)
-                                    let creationDate = attributes[.creationDate] as? Date ?? Date()
-                                    
-                                    // Create analyzed note object
-                                    let note = AnalyzedNote(
-                                        id: UUID(), // Using UUID as unique identifier
-                                        title: analysisResult.suggestedTitle ?? "Untitled Note",
-                                        summary: analysisResult.summary,
-                                        folderURL: folderURL,
-                                        created: creationDate
-                                    )
-                                    
-                                    notes.append(note)
-                                } else {
-                                    print("❌ Error decoding JSON to AnalysisResult. JSON: \(jsonString.prefix(100))...")
-                                    
-                                    // Try to identify the decoding problem
-                                    if let jsonData = jsonString.data(using: .utf8) {
-                                        do {
-                                            let _ = try JSONDecoder().decode(AnalysisResult.self, from: jsonData)
-                                        } catch {
-                                            print("⚠️ Specific error: \(error)")
-                                            
-                                            // Try to print JSON keys for diagnosis
-                                            if let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
-                                                print("📋 Keys in JSON: \(json.keys)")
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                print("❌ Could not find JSON object in content")
-                                print("⚠️ Message content without correct JSON: \(messageContent.prefix(100))...")
-                            }
-                        } else {
-                            print("❌ Error processing analysis.json file content")
-                            
-                            // Try to understand JSON structure
-                            if let anyJson = try? JSONSerialization.jsonObject(with: analysisData) {
-                                print("⚠️ JSON structure: \(type(of: anyJson))")
-                                if let dict = anyJson as? [String: Any] {
-                                    print("⚠️ Keys in JSON: \(dict.keys.joined(separator: ", "))")
-                                }
-                            }
-                        }
+                        // Crear una nota única para cada archivo
+                        let noteId = UUID()
+                        
+                        // Crear nota con los datos básicos
+                        let note = AnalyzedNote(
+                            id: noteId,
+                            title: "Nota \(folderURL.lastPathComponent)",
+                            summary: rawContent,
+                            folderURL: folderURL,
+                            created: creationDate,
+                            suggestedTitle: "🔍 Transcripción"
+                        )
+                        
+                        notes.append(note)
+                        
                     } catch {
                         print("❌ Error reading analysis.json file: \(error)")
                     }
                 } else {
-                    print("⚠️ analysis.json file not found in: \(folderURL.lastPathComponent)")
+                    // Look for transcript.txt as a fallback
+                    let transcriptURL = folderURL.appendingPathComponent("transcript.txt")
+                    if FileManager.default.fileExists(atPath: transcriptURL.path) {
+                        do {
+                            let transcript = try String(contentsOf: transcriptURL, encoding: .utf8)
+                            if !transcript.isEmpty {
+                                let note = AnalyzedNote(
+                                    id: UUID(),
+                                    title: "Transcript " + folderURL.lastPathComponent,
+                                    summary: transcript,
+                                    folderURL: folderURL,
+                                    created: creationDate,
+                                    suggestedTitle: "Transcripción"
+                                )
+                                
+                                notes.append(note)
+                            }
+                        } catch {
+                            print("❌ Error reading transcript.txt: \(error)")
+                        }
+                    }
                 }
             }
         } catch {
@@ -1221,151 +1207,197 @@ struct NotesListView: View {
         print("📊 Total notes loaded: \(notes.count)")
         return notes
     }
-    
-    // Format date
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
 }
 
-// Cell to display a note
-struct NoteCell: View {
-    let note: AnalyzedNote
-    @Environment(\.colorScheme) private var colorScheme
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(note.title)
-                    .font(.headline)
-                    .foregroundColor(AppColors.adaptiveText)
-                
-                Text(formatDate(note.created))
-                    .font(.caption)
-                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .secondary)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
-        }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
-        .background(colorScheme == .dark ? Color("CardBackground") : .white)
-        .cornerRadius(12)
-    }
-    
-    // Format date
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
-}
-
-// Note detail view
+// Note detail view - SIMPLIFICADA PARA EVITAR ERRORES
 struct NoteDetailView: View {
     let note: AnalyzedNote
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @State private var showCopiedMessage: Bool = false
+    
+    // Procesamiento del contenido para garantizar que se muestre correctamente
+    private var cleanedContent: String {
+        // Si es JSON, intentar extraer solo el texto relevante
+        if note.summary.starts(with: "{") {
+            do {
+                // Intentar parsear como JSON para extraer contenido
+                if let jsonData = note.summary.data(using: .utf8),
+                   let jsonObj = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                    
+                    // Intentar extraer primero de "summary" si existe
+                    if let summary = jsonObj["summary"] as? String {
+                        return summary
+                    }
+                    
+                    // Luego intentar desde choices (formato OpenAI)
+                    if let choices = jsonObj["choices"] as? [[String: Any]],
+                       let firstChoice = choices.first,
+                       let message = firstChoice["message"] as? [String: Any],
+                       let content = message["content"] as? String {
+                        return content
+                    }
+                }
+            } catch {
+                print("Error al procesar JSON del contenido: \(error)")
+            }
+        }
+        
+        // Si no se pudo procesar como JSON o no es JSON, devolver el contenido original
+        return note.summary
+    }
+    
+    // Convertir el resumen a formato markdown
+    private var markdownContent: String {
+        var markdown = """
+        # \(note.title)
+        
+        """
+        
+        // Añadir título sugerido si existe y es diferente
+        if !note.suggestedTitle.isEmpty && note.suggestedTitle != note.title {
+            markdown += """
+            > **Título sugerido:** \(note.suggestedTitle)
+            
+            """
+        }
+        
+        // Añadir el contenido del resumen (limpio)
+        markdown += cleanedContent
+        
+        // Añadir metadatos al final
+        markdown += """
+        
+        ---
+        Fecha: \(formatDate(note.created))
+        """
+        
+        return markdown
+    }
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Debug information
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Debug Info:")
-                            .font(.headline)
-                            .foregroundColor(.red)
-                        
-                        Text("Title: \(note.title)")
-                            .font(.caption)
-                            .foregroundColor(.primary)
-                        
-                        Text("Summary length: \(note.summary.count) chars")
-                            .font(.caption)
-                            .foregroundColor(.primary)
-                        
-                        Text("Created: \(formatDate(note.created))")
-                            .font(.caption)
-                            .foregroundColor(.primary)
-                    }
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Title with icon
+                HStack {
+                    Image(systemName: "doc.text")
+                        .font(.title)
+                        .foregroundColor(.blue)
                     
-                    Divider()
-                        .padding(.horizontal)
-                    
-                    // Note content with high contrast colors
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Note Content:")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        if note.summary.isEmpty {
-                            Text("The note is empty")
-                                .italic()
-                                .foregroundColor(.red)
-                                .padding(.top, 8)
-                        } else {
-                            Text(note.summary)
-                                .font(.body)
-                                .foregroundColor(.primary)
-                                .padding(.top, 8)
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.white.opacity(colorScheme == .dark ? 0.1 : 0.8))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
+                    Text(note.suggestedTitle.isEmpty ? note.title : note.suggestedTitle)
+                        .font(.title)
+                        .bold()
                 }
-                .padding(.vertical)
-            }
-            .background(colorScheme == .dark ? Color.black : Color(UIColor.systemBackground))
-            .navigationTitle(note.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        shareNote()
-                    }) {
-                        Image(systemName: "square.and.arrow.up")
+                .padding(.top)
+                
+                // Original title (if showing suggested title)
+                if !note.suggestedTitle.isEmpty && note.suggestedTitle != note.title {
+                    HStack {
+                        Image(systemName: "character.book.closed")
+                            .foregroundColor(.green)
+                        
+                        Text(note.title)
+                            .font(.headline)
+                            .foregroundColor(.green)
                     }
+                    .padding(.top, 4)
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Close") {
-                        dismiss()
+                // Date
+                Text("Fecha: \(formatDate(note.created))")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Divider()
+                    .padding(.vertical, 8)
+                
+                // Warning if empty
+                if cleanedContent.isEmpty {
+                    Text("No hay contenido disponible para esta nota")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.black.opacity(0.1))
+                        .cornerRadius(8)
+                } else {
+                    // Content with improved visibility
+                    Text(cleanedContent)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(colorScheme == .dark ? Color.black : Color.white)
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(colorScheme == .dark ? Color.gray : Color.gray.opacity(0.5), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+                        .textSelection(.enabled)
+                    
+                    // Botón para copiar al portapapeles
+                    Button(action: {
+                        UIPasteboard.general.string = markdownContent
+                        
+                        withAnimation {
+                            showCopiedMessage = true
+                        }
+                        
+                        // Ocultar el mensaje después de 2 segundos
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation {
+                                showCopiedMessage = false
+                            }
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "doc.on.doc")
+                            Text("Copiar al portapapeles")
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule()
+                                .fill(Color.blue.opacity(0.1))
+                        )
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                        )
                     }
-                    .foregroundColor(AppColors.adaptiveText)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 16)
+                    .overlay(
+                        Text("¡Copiado!")
+                            .font(.caption)
+                            .padding(6)
+                            .background(Color.blue.opacity(0.2))
+                            .cornerRadius(4)
+                            .offset(y: -30)
+                            .opacity(showCopiedMessage ? 1 : 0)
+                    )
                 }
+            }
+            .padding()
+        }
+        .navigationTitle("Detalle de Nota")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            print("📝 NoteDetailView apareció")
+            print("📝 Título: \(note.title)")
+            print("📝 Título sugerido: \(note.suggestedTitle)")
+            print("📝 ID: \(note.id)")
+            print("📝 Longitud: \(note.summary.count)")
+            print("📝 Primeros 50 caracteres: \(note.summary.prefix(50))")
+            
+            // Extra debug for content
+            if note.summary.isEmpty {
+                print("⚠️ ALERTA: El contenido de la nota está vacío")
             }
         }
     }
     
-    // Share note
-    private func shareNote() {
-        let content = "\(note.title)\n\n\(note.summary)"
-        let activityVC = UIActivityViewController(activityItems: [content], applicationActivities: nil)
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(activityVC, animated: true)
-        }
-    }
-    
-    // Format date
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateStyle = .long
+        formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
@@ -1378,6 +1410,40 @@ struct AnalyzedNote: Identifiable {
     let summary: String
     let folderURL: URL
     let created: Date
+    let suggestedTitle: String // Título sugerido para mostrar en la vista de detalle
+    
+    // Inicializador con valores por defecto para evitar valores nulos
+    init(id: UUID = UUID(), 
+         title: String = "Nota sin título", 
+         summary: String = "", 
+         folderURL: URL, 
+         created: Date = Date(),
+         suggestedTitle: String = "") {
+        self.id = id
+        self.title = title.isEmpty ? "Nota sin título" : title
+        self.summary = summary
+        self.folderURL = folderURL
+        self.created = created
+        self.suggestedTitle = suggestedTitle.isEmpty ? title : suggestedTitle
+    }
+    
+    // Método para verificar la validez de la nota
+    func isValid() -> Bool {
+        return !summary.isEmpty
+    }
+    
+    // Añadir método para depuración
+    func debugDescription() -> String {
+        return """
+        ID: \(id)
+        Title: \(title)
+        Suggested Title: \(suggestedTitle)
+        Summary length: \(summary.count)
+        First 100 chars: '\(summary.prefix(100))'
+        Folder: \(folderURL.lastPathComponent)
+        Created: \(created)
+        """
+    }
 }
 
 // Custom search bar component
@@ -1411,6 +1477,104 @@ struct SearchBar: View {
         }
         .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color(.systemGray6))
         .cornerRadius(10)
+    }
+}
+
+// Cell to display a note
+struct NoteCell: View {
+    let note: AnalyzedNote
+    @Environment(\.colorScheme) private var colorScheme
+    
+    // Extraer título real a mostrar
+    private var displayTitle: String {
+        if !note.suggestedTitle.isEmpty {
+            return note.suggestedTitle
+        }
+        return note.title
+    }
+    
+    // Extraer resumen limpio
+    private var displaySummary: String {
+        // Si es JSON, intentar extraer solo el texto relevante
+        if note.summary.starts(with: "{") {
+            do {
+                // Intentar parsear como JSON para extraer contenido
+                if let jsonData = note.summary.data(using: .utf8),
+                   let jsonObj = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                    
+                    // Intentar extraer primero de "summary" si existe
+                    if let summary = jsonObj["summary"] as? String {
+                        return summary
+                    }
+                    
+                    // Luego intentar desde choices (formato OpenAI)
+                    if let choices = jsonObj["choices"] as? [[String: Any]],
+                       let firstChoice = choices.first,
+                       let message = firstChoice["message"] as? [String: Any],
+                       let content = message["content"] as? String {
+                        return content
+                    }
+                }
+            } catch {
+                // Si hay error al procesar, no hacer nada y usar el fallback
+            }
+        }
+        
+        // Si no se pudo procesar como JSON, devolver el contenido original
+        return note.summary
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Título principal
+            Text(displayTitle)
+                .font(.headline)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .padding(.bottom, 2)
+            
+            // Fecha
+            Text(formatDate(note.created))
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            
+            // Divider and summary
+            if !displaySummary.isEmpty {
+                Divider()
+                    .padding(.vertical, 4)
+                
+                // Mostrar resumen
+                Text(displaySummary.prefix(150) + (displaySummary.count > 150 ? "..." : ""))
+                    .font(.caption)
+                    .foregroundColor(colorScheme == .dark ? Color.white.opacity(0.9) : Color.black.opacity(0.8))
+                    .lineLimit(3)
+                    .padding(.top, 2)
+            }
+            
+            // Chevron
+            HStack {
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
+            }
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(colorScheme == .dark ? Color("CardBackground") : .white)
+                .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+        )
+    }
+    
+    // Format date
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 

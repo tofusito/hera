@@ -1,0 +1,40 @@
+{
+  "source": "/Users/tofu/Code/Xcode/Hera/Hera/RecordView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Microphone Permission Required",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 94
+        }
+      },
+      {
+        "comment": "",
+        "key": "Go to Settings",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 95
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 100
+        }
+      },
+      {
+        "comment": "",
+        "key": "To record audio, you must allow access to the microphone in the settings.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 104
+        }
+      }
+    ]
+  },
+  "version": 1
+}
