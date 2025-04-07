@@ -1436,114 +1436,125 @@ struct NoteDetailView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Título principal (suggestedTitle)
-                HStack {
-                    Image(systemName: "doc.text")
-                        .font(.title)
-                        .foregroundColor(.blue)
-                    
-                    Text(note.suggestedTitle.isEmpty ? note.title : note.suggestedTitle)
-                        .font(.title)
-                        .bold()
-                }
-                .padding(.top)
-                
-                // Fecha destacada
-                HStack {
-                    Image(systemName: "calendar")
-                        .foregroundColor(.secondary)
-                    
-                    Text("Fecha: \(formatDate(note.created))")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.top, 2)
-                
-                // Original title (si hay título sugerido y es diferente)
-                if !note.suggestedTitle.isEmpty && note.suggestedTitle != note.title {
+        ZStack {
+            // Fondo general adaptativo
+            Color("Background").ignoresSafeArea()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Título principal (suggestedTitle)
                     HStack {
-                        Image(systemName: "character.book.closed")
-                            .foregroundColor(.green)
+                        Image(systemName: "doc.text")
+                            .font(.title)
+                            .foregroundColor(AppColors.adaptiveTint)
                         
-                        Text(displayOriginalTitle)
-                            .font(.headline)
-                            .foregroundColor(.green)
+                        Text(note.suggestedTitle.isEmpty ? note.title : note.suggestedTitle)
+                            .font(.title)
+                            .bold()
+                            .foregroundColor(AppColors.adaptiveText)
                     }
-                    .padding(.top, 4)
-                }
-                
-                Divider()
-                    .padding(.vertical, 8)
-                
-                // Warning if empty
-                if displaySummary.isEmpty {
-                    Text("No hay contenido disponible para esta nota")
-                        .font(.headline)
-                        .foregroundColor(.red)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.black.opacity(0.1))
-                        .cornerRadius(8)
-                } else {
-                    // Texto del contenido completo (summary)
-                    Text(displaySummary)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(colorScheme == .dark ? Color.black : Color.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(colorScheme == .dark ? Color.gray : Color.gray.opacity(0.5), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                        .textSelection(.enabled)
+                    .padding(.top)
                     
-                    // Botón para copiar al portapapeles
-                    Button(action: {
-                        UIPasteboard.general.string = markdownContent
+                    // Fecha destacada
+                    HStack {
+                        Image(systemName: "calendar")
+                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
                         
-                        withAnimation {
-                            showCopiedMessage = true
-                        }
-                        
-                        // Ocultar el mensaje después de 2 segundos
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            withAnimation {
-                                showCopiedMessage = false
-                            }
-                        }
-                    }) {
+                        Text("Fecha: \(formatDate(note.created))")
+                            .font(.subheadline)
+                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                    }
+                    .padding(.top, 2)
+                    
+                    // Original title (si hay título sugerido y es diferente)
+                    if !note.suggestedTitle.isEmpty && note.suggestedTitle != note.title {
                         HStack {
-                            Image(systemName: "doc.on.doc")
-                            Text("Copiar al portapapeles")
+                            Image(systemName: "character.book.closed")
+                                .foregroundColor(colorScheme == .dark ? .green.opacity(0.8) : .green)
+                            
+                            Text(displayOriginalTitle)
+                                .font(.headline)
+                                .foregroundColor(colorScheme == .dark ? .green.opacity(0.8) : .green)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(
-                            Capsule()
-                                .fill(Color.blue.opacity(0.1))
-                        )
+                        .padding(.top, 4)
+                    }
+                    
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    // Warning if empty
+                    if displaySummary.isEmpty {
+                        Text("No hay contenido disponible para esta nota")
+                            .font(.headline)
+                            .foregroundColor(.red)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05))
+                            .cornerRadius(12)
+                    } else {
+                        // Texto del contenido completo (summary)
+                        Text(displaySummary)
+                            .foregroundColor(AppColors.adaptiveText)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(colorScheme == .dark ? Color("CardBackground") : Color.white)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(colorScheme == .dark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.08 : 0.12), radius: 3, x: 0, y: 2)
+                            .textSelection(.enabled)
+                        
+                        // Botón para copiar al portapapeles
+                        Button(action: {
+                            UIPasteboard.general.string = markdownContent
+                            
+                            withAnimation {
+                                showCopiedMessage = true
+                            }
+                            
+                            // Ocultar el mensaje después de 2 segundos
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                withAnimation {
+                                    showCopiedMessage = false
+                                }
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "doc.on.doc")
+                                Text("Copiar al portapapeles")
+                            }
+                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : AppColors.adaptiveTint)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule()
+                                    .fill(colorScheme == .dark ? Color.blue.opacity(0.2) : Color.blue.opacity(0.08))
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(colorScheme == .dark ? Color.blue.opacity(0.4) : Color.blue.opacity(0.25), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 16)
                         .overlay(
-                            Capsule()
-                                .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                            Text("¡Copiado!")
+                                .font(.caption)
+                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                .padding(6)
+                                .background(colorScheme == .dark ? Color.blue.opacity(0.3) : Color.blue.opacity(0.15))
+                                .cornerRadius(8)
+                                .offset(y: -30)
+                                .opacity(showCopiedMessage ? 1 : 0)
                         )
                     }
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 16)
-                    .overlay(
-                        Text("¡Copiado!")
-                            .font(.caption)
-                            .padding(6)
-                            .background(Color.blue.opacity(0.2))
-                            .cornerRadius(4)
-                            .offset(y: -30)
-                            .opacity(showCopiedMessage ? 1 : 0)
-                    )
                 }
+                .padding()
             }
-            .padding()
+            .scrollIndicators(.hidden)
         }
         .navigationTitle("Detalle de Nota")
         .navigationBarTitleDisplayMode(.inline)
