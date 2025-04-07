@@ -20,10 +20,27 @@ Capture your thoughts. Convert them into documents. Organize your life.
 
 ---
 
+## 📑 Table of Contents
+
+- [✨ What is Hera?](#-what-is-hera)
+- [🧠 What Can Hera Do?](#-what-can-hera-do)
+- [☕ Help Bring Hera to the App Store](#-help-bring-hera-to-the-app-store)
+- [🛠️ Tech Stack & Architecture](#️-tech-stack--architecture)
+- [💡 Smart Features](#-smart-features)
+- [🚀 Getting Started](#-getting-started)
+- [🧪 Testing](#-testing)
+- [📁 Project Structure](#-project-structure)
+- [🐈 Who's Hera?](#-whos-hera)
+- [🛣️ What's Next?](#️-whats-next)
+- [🤝 Contributing](#-contributing)
+- [📝 License](#-license)
+
+---
+
 ## ✨ What is Hera?
 
 **Hera** is more than a voice recording app.  
-It’s your intelligent, cat-powered productivity assistant — turning messy voice notes into structured documents, reminders, and calendar events — all in a calming, minimalist UI.
+It's your intelligent, cat-powered productivity assistant — turning messy voice notes into structured documents, reminders, and calendar events — all in a calming, minimalist UI.
 
 Inspired by Hera, my feline muse with perfect listening skills and zero tolerance for chaos, this app brings clarity to your thoughts and purrfection to your day.
 
@@ -37,7 +54,7 @@ Inspired by Hera, my feline muse with perfect listening skills and zero toleranc
 - 📅 Detect calendar events and to-dos and suggest adding them to your system  
 - 📤 Integrate with iOS Calendar & Reminders in one tap  
 - 💾 Import audio from other sources and process it like magic  
-- 🎨 Minimalist interface inspired by Hera’s quiet dignity  
+- 🎨 Minimalist interface inspired by Hera's quiet dignity  
 - 🌗 Dark and light mode with adaptive pawprint themes
 
 ---
@@ -79,8 +96,7 @@ If this app sounds useful, charming, or at least less annoying than your own bra
 
 Each recording is stored in a self-contained folder:
 
-```
-UUID/
+```UUID/
 ├── audio.m4a
 ├── transcription.txt
 ├── document.md
@@ -109,7 +125,7 @@ Turn voice notes into:
 
 ### 📆 Event & Reminder Detection
 
-Say things like “remind me to call Alex on Friday” or “meeting at 3pm with Marta” and Hera will:
+Say things like "remind me to call Alex on Friday" or "meeting at 3pm with Marta" and Hera will:
 - Detect it  
 - Suggest it  
 - Let you add it to your Calendar or Reminders with one tap
@@ -124,19 +140,70 @@ Say things like “remind me to call Alex on Friday” or “meeting at 3pm with
 
 ## 🚀 Getting Started
 
-1. Clone the repo  
-2. Open in Xcode  
-3. Add your OpenAI API key  
-4. Build & run on device (free provisioning is supported!)
+1. Clone the repo
+   ```bash
+   git clone https://github.com/yourusername/hera.git
+   cd hera
+   ```
 
-> 🧠 **Note on API Keys**  
-> Hera does not come with any AI API keys included.  
-> You’ll need to generate your own API key from [OpenAI](https://platform.openai.com/account/api-keys) and paste it into the app’s settings screen.  
-> Your key is stored locally on your device — never uploaded or shared — and can be removed anytime.
+2. Open the project in Xcode
+   ```bash
+   # Option 1: Use the convenience script
+   ./open.sh
+   
+   # Option 2: Open manually
+   open App/Hera.xcodeproj
+   ```
+
+3. Setup your OpenAI API key
+   - Create a file named `APIKeys.swift` in `Hera/Sources/Utils/`
+   - Add your API key as shown in the example template:
+   ```swift
+   struct APIKeys {
+       static let openAI = "your-openai-api-key-here"
+   }
+   ```
+
+4. Build and run the project (⌘+R)
 
 ---
 
-## 🐈 Who’s Hera?
+## 🧪 Testing
+
+Run tests using Xcode's testing framework (⌘+U).
+
+The project contains:
+- Unit tests in `HeraTests/`
+- UI tests in `HeraUITests/`
+
+---
+
+## 📁 Project Structure
+
+This project follows a modular architecture to keep code organized:
+
+```
+App/                          # Main application directory
+├── Hera.xcodeproj/           # Xcode project file
+├── Hera/                     # Main app code
+│   ├── Sources/
+│   │   ├── App/              # App entry point
+│   │   ├── Models/           # Data models
+│   │   ├── Views/            # SwiftUI views
+│   │   ├── Services/         # Services (OpenAI, Audio)
+│   │   ├── Utils/            # Common utilities
+│   │   └── Extensions/       # Swift/UIKit extensions
+│   ├── Assets.xcassets/      # App assets
+│   ├── Info.plist            # App configuration
+│   └── Hera.entitlements     # App entitlements
+├── HeraTests/                # Unit tests
+├── HeraUITests/              # UI tests
+└── Resources/                # App resources
+```
+
+---
+
+## 🐈 Who's Hera?
 
 Hera is my tuxedo cat. She listens more than most humans.  
 She inspired this app with her calm presence, sharp focus, and general refusal to tolerate nonsense.  
@@ -144,7 +211,7 @@ So I built an app that pays attention like she does.
 
 ---
 
-## 🛣️ What’s Next?
+## 🛣️ What's Next?
 
 - ☁️ iCloud sync  
 - 📄 Export to PDF  
@@ -153,9 +220,15 @@ So I built an app that pays attention like she does.
 
 ---
 
+## 🤝 Contributing
+
+Contributions are welcome! Please check out our [Contributing Guidelines](CONTRIBUTING.md) for more details on how to participate in this project.
+
+---
+
 ## 📝 License
 
-MIT – use it, fork it, just don’t sell it and call it your cat.
+MIT – use it, fork it, just don't sell it and call it your cat.
 
 ---
 

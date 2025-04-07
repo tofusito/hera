@@ -1,0 +1,9 @@
+// Rename this file to APIKeys.swift and add your API keys
+// DO NOT commit APIKeys.swift to Git (it's in .gitignore)
+
+struct APIKeys {
+    // Your OpenAI API key from https://platform.openai.com/account/api-keys
+    static let openAI = "your-openai-api-key-here"
+    
+    // Add any other API keys here as needed
+} 
