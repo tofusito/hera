@@ -17,49 +17,18 @@ This document describes the planned features and improvements for future version
 - [ ] Optimize audio player performance
 - [ ] Add unit tests for core components
 
-## Version 0.3.0
+## Future Versions (To Be Decided)
 
-### Features
-- [ ] Implement iCloud synchronization
-- [ ] Add capability to share recordings and documents
-- [ ] Create an animated mood visualizer inspired by Hera
-- [ ] Implement tags and categories for voice notes
-- [ ] Add better search capabilities for recordings
+We have many ideas for the future of Hera, but we're focusing on making version 0.2.0 great before committing to specific features for later versions. Some potential ideas include:
 
-### Technical Improvements
-- [ ] Implement cache for frequent transcriptions
-- [ ] Optimize OpenAI API usage
-- [ ] Improve storage system for large files
-- [ ] Add usage analytics to track transcription costs
+- iCloud synchronization
+- Sharing capabilities
+- Enhanced categorization and search
+- More export options
+- Desktop companion
+- And much more!
 
-## Version 0.4.0
-
-### Features
-- [ ] Add support for custom export templates
-- [ ] Implement batch processing of multiple recordings
-- [ ] Create a desktop companion app
-- [ ] Add voice commands for app control
-
-### Technical Improvements
-- [ ] Migrate to latest SwiftUI features
-- [ ] Implement background processing
-- [ ] Improve accessibility features
-- [ ] Add offline support for basic functions
-
-## Version 1.0.0
-
-### Features
-- [ ] Integration with third-party applications
-- [ ] Support for multiple languages
-- [ ] Template system for different document types
-- [ ] Privacy mode for local transcriptions without API
-- [ ] Complete widget support for iOS
-
-### Technical Improvements
-- [ ] Implement a plugin system
-- [ ] Optimize for new iOS devices
-- [ ] Refactor for scalable architecture
-- [ ] Comprehensive test coverage
+We'll update this roadmap as our plans solidify.
 
 ## Got ideas?
 
