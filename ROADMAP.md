@@ -9,6 +9,7 @@ This document describes the planned features and improvements for future version
 - [ ] Improve user interface for longer transcriptions
 - [ ] Add UI customization options
 - [ ] Enhance audio visualization during recording
+- [ ] Add cost display after each transcription/analysis
 
 ### Technical Improvements
 - [ ] Refactor application state management
@@ -23,11 +24,27 @@ This document describes the planned features and improvements for future version
 - [ ] Add capability to share recordings and documents
 - [ ] Create an animated mood visualizer inspired by Hera
 - [ ] Implement tags and categories for voice notes
+- [ ] Add better search capabilities for recordings
 
 ### Technical Improvements
 - [ ] Implement cache for frequent transcriptions
 - [ ] Optimize OpenAI API usage
 - [ ] Improve storage system for large files
+- [ ] Add usage analytics to track transcription costs
+
+## Version 0.4.0
+
+### Features
+- [ ] Add support for custom export templates
+- [ ] Implement batch processing of multiple recordings
+- [ ] Create a desktop companion app
+- [ ] Add voice commands for app control
+
+### Technical Improvements
+- [ ] Migrate to latest SwiftUI features
+- [ ] Implement background processing
+- [ ] Improve accessibility features
+- [ ] Add offline support for basic functions
 
 ## Version 1.0.0
 
@@ -36,11 +53,13 @@ This document describes the planned features and improvements for future version
 - [ ] Support for multiple languages
 - [ ] Template system for different document types
 - [ ] Privacy mode for local transcriptions without API
+- [ ] Complete widget support for iOS
 
 ### Technical Improvements
 - [ ] Implement a plugin system
 - [ ] Optimize for new iOS devices
 - [ ] Refactor for scalable architecture
+- [ ] Comprehensive test coverage
 
 ## Got ideas?
 
