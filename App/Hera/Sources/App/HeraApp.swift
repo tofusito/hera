@@ -26,21 +26,48 @@ struct HeraApp: App {
     }()
     
     init() {
+        configureAppAppearance()
+    }
+    
+    private func configureAppAppearance() {
+        // NavigationBar appearance
         let navBarAppearance = UINavigationBarAppearance()
         navBarAppearance.configureWithOpaqueBackground()
         navBarAppearance.backgroundColor = UIColor(named: "Background")
         navBarAppearance.titleTextAttributes = [.foregroundColor: UIColor(named: "PrimaryText") ?? .label]
         navBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor(named: "PrimaryText") ?? .label]
         
+        // Shadow para navegación (eliminar línea de borde)
+        navBarAppearance.shadowColor = .clear
+        
+        // Aplicar a la UI
         UINavigationBar.appearance().standardAppearance = navBarAppearance
         UINavigationBar.appearance().compactAppearance = navBarAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navBarAppearance
+        
+        // Estilo de la barra de tablas
+        UITableView.appearance().backgroundColor = UIColor(named: "Background")
+        UITableView.appearance().separatorStyle = .none
+        
+        // Estilo de celdas de tabla
+        UITableViewCell.appearance().backgroundColor = .clear
+        
+        // Estilo de barras de búsqueda
+        UISearchBar.appearance().backgroundColor = UIColor(named: "Background")
+        
+        // Color para los segmentedControl
+        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(named: "AccentColor")
+        UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
+        UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor(named: "PrimaryText") ?? .label], for: .normal)
     }
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .modelContainer(sharedModelContainer)
+                .environmentObject(audioManager)
+                .preferredColorScheme(.none) // Permitir que el sistema elija el tema
+                .tint(AppColors.accent) // Color de acento global
         }
     }
 }

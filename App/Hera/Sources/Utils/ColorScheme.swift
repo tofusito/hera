@@ -39,4 +39,22 @@ struct AppColors {
     static var adaptiveTint: Color {
         Color(.tintColor)
     }
+    
+    // Elementos de UI comunes
+    static var actionButtonBackground: Color {
+        accent
+    }
+    
+    static var actionButtonForeground: Color {
+        Color.white
+    }
+    
+    // Obtener color con opacidad personalizada
+    static func primaryText(opacity: Double) -> Color {
+        primaryText.opacity(opacity)
+    }
+    
+    static func secondaryText(opacity: Double) -> Color {
+        secondaryText.opacity(opacity)
+    }
 } 

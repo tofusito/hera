@@ -123,7 +123,6 @@ class CalendarManager {
         
         // Try different formats if the first fails
         var reminderDate: Date?
-        var formatUsed = ""
         let possibleFormats = ["dd/MM/yyyy HH:mm", "dd/MM/yyyy", "d 'de' MMMM 'de' yyyy", "d 'de' MMMM", "MMMM d, yyyy", "yyyy-MM-dd", "yyyy/MM/dd"]
         
         // Try with specific formats
@@ -131,7 +130,6 @@ class CalendarManager {
             dateFormatter.dateFormat = format
             if let date = dateFormatter.date(from: dateString) {
                 reminderDate = date
-                formatUsed = format
                 print("✅ Reminder date correctly interpreted using format: \(format)")
                 print("📅 Interpreted date: \(date)")
                 break
@@ -144,7 +142,6 @@ class CalendarManager {
             let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
             reminderDate = tomorrow
             print("⚠️ Could not interpret the date: '\(dateString)'. Using default date: tomorrow")
-            formatUsed = "default date (tomorrow)"
         }
         
         guard let dueDate = reminderDate else {
@@ -197,7 +194,6 @@ class CalendarManager {
         
         // Try different formats if the first fails
         var eventDate: Date?
-        var formatUsed = ""
         let possibleFormats = ["dd/MM/yyyy HH:mm", "dd/MM/yyyy", "d 'de' MMMM 'de' yyyy", "d 'de' MMMM", "MMMM d, yyyy", "yyyy-MM-dd", "yyyy/MM/dd"]
         
         // Try with specific formats
@@ -205,7 +201,6 @@ class CalendarManager {
             dateFormatter.dateFormat = format
             if let date = dateFormatter.date(from: dateString) {
                 eventDate = date
-                formatUsed = format
                 print("✅ Date correctly interpreted using format: \(format)")
                 print("📅 Interpreted date: \(date)")
                 break
@@ -218,7 +213,6 @@ class CalendarManager {
             let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
             eventDate = tomorrow
             print("⚠️ Could not interpret the date: '\(dateString)'. Using default date: tomorrow")
-            formatUsed = "default date (tomorrow)"
         }
         
         guard let startDate = eventDate else {
@@ -425,66 +419,6 @@ struct PlaybackView: View {
                 }
                 .background(.regularMaterial)
                 .ignoresSafeArea(edges: .bottom)
-            }
-            
-            // Botón flotante para mostrar todas las notas
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        // Cambiar a NavigationLink programático
-                        openWindow(value: "noteslist")
-                    }) {
-                        ZStack {
-                            Circle()
-                                .fill(AppColors.accent.gradient)
-                                .frame(width: 60, height: 60)
-                                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.3), 
-                                        radius: 5, x: 0, y: 3)
-                            
-                            Image(systemName: "note.text.badge.plus")
-                                .font(.system(size: 22, weight: .medium))
-                                .foregroundColor(.white)
-                        }
-                        .overlay(
-                            Text("View notes")
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(colorScheme == .dark ? 
-                                           Color(UIColor.systemBackground).opacity(0.7) : 
-                                           Color(UIColor.systemBackground).opacity(0.9))
-                                .cornerRadius(8)
-                                .offset(y: -45)
-                                .opacity(isShowingTooltip ? 1 : 0)
-                        )
-                    }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 100) // Para colocarlo por encima del reproductor
-                    .onHover { hovering in
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isShowingTooltip = hovering
-                        }
-                    }
-                    .onTapGesture {
-                        // Pequeña animación al pulsar
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                            buttonScale = 0.9
-                        }
-                        
-                        // Volver al tamaño normal con un pequeño retraso
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                buttonScale = 1.0
-                            }
-                        }
-                        
-                        // Mostrar la vista de notas usando navegación en lugar de sheet
-                        showAllNotes = true
-                    }
-                    .scaleEffect(buttonScale)
-                }
             }
         }
         .overlay(
@@ -1177,7 +1111,7 @@ struct PlaybackView: View {
     // Temporizador para actualizar el progreso
     private func setupProgressTimer() {
         // Verificar que el player existe antes de configurar el timer
-        guard let player = self.audioManager.player else {
+        if audioManager.player == nil {
             print("⚠️ Cannot set up timer - Player not available")
             return
         }
@@ -1404,7 +1338,7 @@ struct PlaybackView: View {
     
     // Procesar la transcripción con OpenAI
     private func processTranscription() {
-        guard let fileURL = recording.fileURL,
+        guard let _ = recording.fileURL,
               let transcription = recording.transcription,
               !transcription.isEmpty,
               !openAIKey.isEmpty else {

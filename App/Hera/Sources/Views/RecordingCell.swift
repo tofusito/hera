@@ -5,43 +5,73 @@ struct RecordingCell: View {
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 16) {
+            // Indicador visual de audio
+            Circle()
+                .fill(AppColors.accent)
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Image(systemName: "waveform")
+                        .font(.system(size: 16, weight: .light))
+                        .foregroundColor(.white)
+                )
+                .shadow(color: AppColors.accent.opacity(0.3), radius: 4, x: 0, y: 2)
+            
+            VStack(alignment: .leading, spacing: 6) {
                 Text(recording.title)
                     .font(.headline)
-                    .foregroundColor(AppColors.adaptiveText)
+                    .foregroundColor(AppColors.primaryText)
+                    .lineLimit(1)
                 
-                HStack {
+                HStack(spacing: 8) {
                     Text(formatDate(recording.timestamp))
                         .font(.caption)
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                        .foregroundColor(AppColors.secondaryText)
                     
                     Text("•")
                         .font(.caption)
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                        .foregroundColor(AppColors.secondaryText.opacity(0.7))
                     
                     Text(formatDuration(recording.duration))
-                        .font(.caption)
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundColor(AppColors.secondaryText)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(AppColors.secondaryText.opacity(0.12))
+                        )
                 }
             }
             
             Spacer()
             
+            // Indicador de flecha más estilizado
             Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .secondary)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(AppColors.secondaryText.opacity(0.5))
+                .padding(.trailing, 8)
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(AppColors.cardBackground)
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), 
+                        radius: 4, x: 0, y: 2)
+        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
     }
     
     private func formatDate(_ date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
-            return "Today"
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm"
+            return "Hoy, " + formatter.string(from: date)
         } else if calendar.isDateInYesterday(date) {
-            return "Yesterday"
+            return "Ayer"
         } else {
             let formatter = DateFormatter()
             formatter.dateStyle = .medium

@@ -7,6 +7,10 @@ struct RecordView: View {
     var modelContext: ModelContext
     
     @State private var showingPermissionAlert = false
+    @State private var recordingPulse = false
+    @State private var buttonScale = 1.0
+    @State private var recordingButtonPressed = false
+    
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
@@ -19,14 +23,21 @@ struct RecordView: View {
                 // Botón de retroceso en la esquina superior izquierda
                 HStack {
                     Button {
-                        if audioManager.isRecording {
-                            _ = audioManager.stopRecording()
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                            if audioManager.isRecording {
+                                _ = audioManager.stopRecording()
+                            }
+                            dismiss()
                         }
-                        dismiss()
                     } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.title2)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 22, weight: .medium))
                             .foregroundColor(AppColors.adaptiveText)
+                            .padding(12)
+                            .background(
+                                Circle()
+                                    .fill(Color.primary.opacity(0.08))
+                            )
                     }
                     .padding()
                     
@@ -35,34 +46,75 @@ struct RecordView: View {
                 
                 Spacer()
                 
-                // Visualización del tiempo centrada 
+                // Visualización del tiempo centrada con animación
                 Text(formatTime(audioManager.recordingTime))
                     .font(.system(size: 80, weight: .thin))
                     .monospacedDigit()
                     .foregroundColor(AppColors.adaptiveText)
+                    .contentTransition(.numericText())
+                    .scaleEffect(audioManager.isRecording && recordingPulse ? 1.03 : 1.0)
+                    .animation(audioManager.isRecording ? .easeInOut(duration: 1.0).repeatForever(autoreverses: true) : .default, value: recordingPulse)
+                    .onAppear {
+                        if audioManager.isRecording {
+                            recordingPulse = true
+                        }
+                    }
+                    .onChange(of: audioManager.isRecording) { _, isRecording in
+                        recordingPulse = isRecording
+                    }
+                
+                // Añadir indicador visual de que está grabando
+                if audioManager.isRecording {
+                    HStack(spacing: 20) {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 12, height: 12)
+                            .scaleEffect(recordingPulse ? 1.1 : 0.9)
+                            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: recordingPulse)
+                        
+                        Text("Grabando")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.secondaryText)
+                    }
+                    .padding(.top, 10)
+                    .transition(.opacity)
+                }
                 
                 Spacer()
                 
-                // Botón principal de grabación con fondo adaptativo
+                // Botón principal de grabación con fondo adaptativo y animaciones
                 Button {
-                    if audioManager.isRecording {
-                        stopRecording()
-                    } else {
-                        startRecording()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                        recordingButtonPressed = true
+                        buttonScale = 0.9
+                        
+                        if audioManager.isRecording {
+                            stopRecording()
+                        } else {
+                            startRecording()
+                        }
+                    }
+                    
+                    // Reset del estado de pulsación del botón
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                            buttonScale = 1.0
+                            recordingButtonPressed = false
+                        }
                     }
                 } label: {
                     ZStack {
                         // Fondo exterior con efecto de material y sombra
                         Circle()
                             .fill(.ultraThinMaterial)
-                            .frame(width: 85, height: 85)
+                            .frame(width: 90, height: 90)
                             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.15), 
                                     radius: 8, x: 0, y: 3)
                         
                         // Círculo interior principal
                         Circle()
-                            .fill(colorScheme == .dark ? Color.gray.opacity(0.3) : Color("ButtonBackground"))
-                            .frame(width: 75, height: 75)
+                            .fill(colorScheme == .dark ? Color.gray.opacity(0.3) : AppColors.buttonBackground)
+                            .frame(width: 80, height: 80)
                             .overlay(
                                 Circle()
                                     .stroke(colorScheme == .dark ? Color.white.opacity(0.7) : Color.white.opacity(0.3), lineWidth: 1.5)
@@ -71,15 +123,20 @@ struct RecordView: View {
                         // Elemento central que cambia entre grabación y pausa
                         if audioManager.isRecording {
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(colorScheme == .dark ? Color.white : Color("PrimaryText"))
+                                .fill(colorScheme == .dark ? Color.white : AppColors.primaryText)
                                 .frame(width: 30, height: 30)
+                                .transition(.scale(scale: 0.7).combined(with: .opacity))
                         } else {
                             Circle()
-                                .fill(colorScheme == .dark ? Color.white : Color("PrimaryText"))
+                                .fill(colorScheme == .dark ? Color.white : AppColors.primaryText)
                                 .frame(width: 60, height: 60)
+                                .transition(.scale(scale: 0.7).combined(with: .opacity))
                         }
                     }
+                    .scaleEffect(buttonScale)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: buttonScale)
                 }
+                .buttonStyle(PlainButtonStyle())
                 .padding(.bottom, 40)
             }
         }
@@ -132,7 +189,9 @@ struct RecordView: View {
     private func stopRecording() {
         if let recording = audioManager.stopRecording() {
             saveRecording(recording)
-            dismiss()
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                dismiss()
+            }
         }
     }
     

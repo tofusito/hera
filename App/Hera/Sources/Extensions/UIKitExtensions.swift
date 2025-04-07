@@ -10,24 +10,43 @@ extension UIColor {
         
         let isDarkMode = UITraitCollection.current.userInterfaceStyle == .dark
         
-        // Usar colores más claros para modo oscuro
+        // Configuración base para ambos modos
+        navigationBarAppearance.backgroundColor = UIColor(named: "Background")
+        navigationBarAppearance.titleTextAttributes = [.foregroundColor: UIColor(named: "PrimaryText") ?? .label]
+        navigationBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor(named: "PrimaryText") ?? .label]
+        
+        // Personalización específica para modo oscuro
         if isDarkMode {
-            // Personalización específica para modo oscuro
-            navigationBarAppearance.backgroundColor = UIColor(named: "Background")
-            
             // Configurar colores para todo el sistema
-            UIView.appearance().backgroundColor = UIColor(named: "Background")
+            UIView.appearance(whenContainedInInstancesOf: [UIAlertController.self]).backgroundColor = UIColor(named: "CardBackground")
             UITableView.appearance().backgroundColor = UIColor(named: "Background")
             UICollectionView.appearance().backgroundColor = UIColor(named: "Background")
             
             // Configurar colores de celdas
             UITableViewCell.appearance().backgroundColor = UIColor(named: "CardBackground")
+            
+            // Mejorar la separación entre celdas
+            UITableView.appearance().separatorColor = UIColor(named: "SecondaryText")?.withAlphaComponent(0.3)
+        } else {
+            // Personalización para modo claro
+            UITableView.appearance().backgroundColor = UIColor(named: "Background")
+            UICollectionView.appearance().backgroundColor = UIColor(named: "Background")
+            
+            // Configurar colores de celdas
+            UITableViewCell.appearance().backgroundColor = UIColor(named: "CardBackground")
+            
+            // Mejorar la separación entre celdas
+            UITableView.appearance().separatorColor = UIColor(named: "SecondaryText")?.withAlphaComponent(0.2)
         }
             
         // Aplicar apariencia a barras de navegación
         UINavigationBar.appearance().standardAppearance = navigationBarAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navigationBarAppearance
         UINavigationBar.appearance().compactAppearance = navigationBarAppearance
+        
+        // Configurar estilo de barras de búsqueda
+        UISearchBar.appearance().backgroundColor = UIColor(named: "Background")
+        UISearchBar.appearance().tintColor = UIColor(named: "AccentColor")
     }
 }
 

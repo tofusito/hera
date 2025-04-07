@@ -346,7 +346,7 @@ struct ContentView: View {
             }
             .scrollIndicators(.hidden)
         }
-        .onChange(of: searchText) { newValue in
+        .onChange(of: searchText) { _, _ in
             filterRecordings()
         }
     }
@@ -1034,7 +1034,7 @@ struct NotesListView: View {
             .onAppear {
                 loadNotes()
             }
-            .onChange(of: searchText) { newValue in
+            .onChange(of: searchText) { _, _ in
                 // Filter notes when search text changes
                 filterNotes()
             }
@@ -1159,7 +1159,7 @@ struct NotesListView: View {
                         print("📄 Contenido del JSON (primeros 100 chars): \(fileContent.prefix(100))")
                         
                         // Título por defecto con el ID de la carpeta
-                        var title = "Nota \(folderURL.lastPathComponent)"
+                        let title = "Nota \(folderURL.lastPathComponent)"
                         var suggestedTitle = ""
                         var summary = ""
                         
@@ -1517,12 +1517,9 @@ struct NoteDetailView: View {
                             }
                             .padding(.bottom, 4)
                             
-                            // Texto del contenido completo (summary)
-                            Text(displaySummary)
-                                .foregroundColor(AppColors.adaptiveText)
-                                .lineSpacing(5)
+                            // Texto del contenido completo (summary) con soporte para Markdown
+                            MarkdownText(markdown: displaySummary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .textSelection(.enabled)
                         }
                         .padding(16)
                         .background(
@@ -1792,8 +1789,9 @@ struct NoteCell: View {
                 Divider()
                     .padding(.vertical, 4)
                 
-                // Mostrar resumen truncado
-                Text(displaySummary.prefix(150) + (displaySummary.count > 150 ? "..." : ""))
+                // Mostrar resumen truncado, limpiando posibles marcadores Markdown
+                let plainText = cleanMarkdownText(displaySummary.prefix(150))
+                Text(plainText + (displaySummary.count > 150 ? "..." : ""))
                     .font(.caption)
                     .foregroundColor(colorScheme == .dark ? Color.white.opacity(0.9) : Color.black.opacity(0.8))
                     .lineLimit(3)
@@ -1824,6 +1822,29 @@ struct NoteCell: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+    
+    // Función para limpiar marcadores básicos de Markdown para previsualización
+    private func cleanMarkdownText(_ text: String.SubSequence) -> String {
+        var result = String(text)
+        
+        // Eliminar encabezados (#)
+        result = result.replacingOccurrences(of: #"^\s*#{1,6}\s+"#, with: "", options: .regularExpression, range: nil)
+        
+        // Eliminar marcadores de negrita/cursiva
+        result = result.replacingOccurrences(of: "[*_]{1,2}", with: "", options: .regularExpression, range: nil)
+        
+        // Eliminar marcadores de código
+        result = result.replacingOccurrences(of: "`", with: "")
+        
+        // Eliminar marcadores de listas
+        result = result.replacingOccurrences(of: #"^\s*[\-\*\+]\s+"#, with: "• ", options: .regularExpression, range: nil)
+        result = result.replacingOccurrences(of: #"^\s*\d+\.\s+"#, with: "• ", options: .regularExpression, range: nil)
+        
+        // Reemplazar múltiples espacios con uno solo
+        result = result.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression, range: nil)
+        
+        return result
     }
 }
 
