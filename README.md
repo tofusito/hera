@@ -161,11 +161,7 @@ Say things like "remind me to call Alex on Friday" or "meeting at 3pm with Marta
 
 ## 🧪 Testing
 
-Run tests using Xcode's testing framework (⌘+U).
-
-The project contains:
-- Unit tests in `HeraTests/`
-- UI tests in `HeraUITests/`
+To be added.
 
 ---
 
