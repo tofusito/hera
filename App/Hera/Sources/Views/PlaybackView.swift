@@ -1272,8 +1272,8 @@ struct PlaybackView: View {
                     }
                     
                 case .failure(let error):
-                    print("❌ Error al transcribir: \(error)")
-                    self.audioError = "Error al transcribir: \(error.localizedDescription)"
+                    print("❌ Error transcribing: \(error)")
+                    self.audioError = "Error transcribing: \(error.localizedDescription)"
                 }
             }
         }
@@ -1315,7 +1315,7 @@ struct PlaybackView: View {
             // Buscar manualmente por ID
             if let originalRecording = allRecordings.first(where: { $0.id == self.recording.id }) {
                 // Actualizar la transcripción en la grabación original
-                print("🔄 Actualizando transcripción en grabación SwiftData: \(originalRecording.id)")
+                print("🔄 Updating transcription in SwiftData recording: \(originalRecording.id)")
                 originalRecording.transcription = transcription
                 try self.modelContext.save()
                 
@@ -1369,7 +1369,7 @@ struct PlaybackView: View {
                             // Buscar manualmente por ID
                             if let originalRecording = allRecordings.first(where: { $0.id == self.recording.id }) {
                                 // Actualizar el análisis en la grabación original
-                                print("🔄 Actualizando análisis en grabación SwiftData: \(originalRecording.id)")
+                                print("🔄 Updating analysis in SwiftData recording: \(originalRecording.id)")
                                 originalRecording.analysis = analysis
                                 try self.modelContext.save()
                                 
@@ -1422,12 +1422,12 @@ struct PlaybackView: View {
                             }
                         }
                     } else {
-                        self.audioError = "El análisis está vacío"
+                        self.audioError = "The analysis is empty"
                     }
                     
                 case .failure(let error):
-                    print("❌ Error al procesar: \(error)")
-                    self.audioError = "Error al procesar: \(error.localizedDescription)"
+                    print("❌ Error processing: \(error)")
+                    self.audioError = "Error processing: \(error.localizedDescription)"
                 }
             }
         }

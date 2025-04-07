@@ -6,7 +6,7 @@ struct RecordingCell: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // Indicador visual de audio
+            // Visual audio indicator
             Circle()
                 .fill(AppColors.accent)
                 .frame(width: 36, height: 36)
@@ -46,7 +46,7 @@ struct RecordingCell: View {
             
             Spacer()
             
-            // Indicador de flecha más estilizado
+            // More stylized arrow indicator
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(AppColors.secondaryText.opacity(0.5))
@@ -69,9 +69,9 @@ struct RecordingCell: View {
         if calendar.isDateInToday(date) {
             let formatter = DateFormatter()
             formatter.dateFormat = "HH:mm"
-            return "Hoy, " + formatter.string(from: date)
+            return "Today, " + formatter.string(from: date)
         } else if calendar.isDateInYesterday(date) {
-            return "Ayer"
+            return "Yesterday"
         } else {
             let formatter = DateFormatter()
             formatter.dateStyle = .medium

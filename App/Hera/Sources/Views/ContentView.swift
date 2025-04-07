@@ -53,7 +53,7 @@ struct DisplayableRecording: Identifiable {
         } catch {
             self.timestamp = Date()
         }
-        self.title = "Grabación - \(id.uuidString.prefix(4))"
+        self.title = "Recording - \(id.uuidString.prefix(4))"
         self.duration = 0 // Se podría cargar desde AVAsset si fuera necesario aquí
         
         // Comprobar si existe el archivo de transcripción
@@ -62,9 +62,9 @@ struct DisplayableRecording: Identifiable {
             do {
                 // Leer transcripción desde el archivo
                 self.transcription = try String(contentsOf: transcriptionFileURL, encoding: .utf8)
-                print("📄 Transcripción cargada desde archivo: \(transcriptionFileURL.path)")
+                print("📄 Transcription loaded from file: \(transcriptionFileURL.path)")
             } catch {
-                print("⚠️ No se pudo leer el archivo de transcripción: \(error)")
+                print("⚠️ Could not read transcription file: \(error)")
                 self.transcription = nil
             }
         } else {
@@ -83,12 +83,12 @@ struct DisplayableRecording: Identifiable {
                    let message = firstChoice["message"] as? [String: Any],
                    let content = message["content"] as? String {
                     self.analysis = content
-                    print("📄 Análisis cargado desde archivo: \(analysisFileURL.path)")
+                    print("📄 Analysis loaded from file: \(analysisFileURL.path)")
                 } else {
                     self.analysis = nil
                 }
             } catch {
-                print("⚠️ No se pudo leer el archivo de análisis: \(error)")
+                print("⚠️ Could not read analysis file: \(error)")
                 self.analysis = nil
             }
         } else {
@@ -989,7 +989,7 @@ struct NotesListView: View {
                 
                 VStack {
                     if isLoading {
-                        ProgressView("Cargando notas...")
+                        ProgressView("Loading notes...")
                             .padding()
                     } else if analyzedNotes.isEmpty {
                         VStack(spacing: 20) {
@@ -997,11 +997,11 @@ struct NotesListView: View {
                                 .font(.system(size: 50))
                                 .foregroundColor(.gray)
                             
-                            Text("No hay notas")
+                            Text("No notes")
                                 .font(.title2)
                                 .foregroundColor(.gray)
                             
-                            Text("Las notas aparecerán aquí después de procesar tus grabaciones")
+                            Text("Notes will appear here after processing your recordings")
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
@@ -1019,7 +1019,7 @@ struct NotesListView: View {
                                         .padding(.horizontal)
                                         .padding(.vertical, 2)
                                         .onTapGesture {
-                                            print("🔍 Nota seleccionada: \(note.title)")
+                                            print("🔍 Note selected: \(note.title)")
                                             selectedNote = note
                                             showDetailView = true
                                         }
@@ -1055,12 +1055,12 @@ struct NotesListView: View {
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
                             ToolbarItem(placement: .navigationBarLeading) {
-                                Button("Cerrar") {
+                                Button("Close") {
                                     selectedNote = nil
                                 }
                             }
                             ToolbarItem(placement: .principal) {
-                                Text("Nota")
+                                Text("Note")
                                     .font(.headline)
                             }
                         }
@@ -1160,56 +1160,56 @@ struct NotesListView: View {
                 let analysisURL = folderURL.appendingPathComponent("analysis.json")
                 
                 if FileManager.default.fileExists(atPath: analysisURL.path) {
-                    print("📄 Procesando archivo: \(analysisURL.lastPathComponent) en \(folderURL.lastPathComponent)")
+                    print("📄 Processing file: \(analysisURL.lastPathComponent) in \(folderURL.lastPathComponent)")
                     
                     do {
-                        // Lee el contenido completo del archivo JSON
+                        // Read the complete content of the JSON file
                         let analysisData = try Data(contentsOf: analysisURL)
                         let fileContent = String(data: analysisData, encoding: .utf8) ?? ""
                         
-                        print("📄 Contenido del JSON (primeros 100 chars): \(fileContent.prefix(100))")
+                        print("📄 JSON content (first 100 chars): \(fileContent.prefix(100))")
                         
-                        // Título por defecto con el ID de la carpeta
-                        let title = "Nota \(folderURL.lastPathComponent)"
+                        // Default title with folder ID
+                        let title = "Note \(folderURL.lastPathComponent)"
                         var suggestedTitle = ""
                         var summary = ""
-                        
-                        // Intenta parsear el JSON directamente
+
+                        // Try to parse the JSON directly
                         do {
                             let jsonObj = try JSONSerialization.jsonObject(with: analysisData) as? [String: Any]
                             
                             if let jsonObj = jsonObj {
-                                print("📄 JSON parseado correctamente")
+                                print("📄 JSON parsed correctly")
                                 
-                                // 1. Extraer título sugerido directamente del JSON
+                                // 1. Extract suggested title directly from JSON
                                 if let extractedTitle = jsonObj["suggestedTitle"] as? String, !extractedTitle.isEmpty {
                                     suggestedTitle = extractedTitle
-                                    print("📄 Título sugerido encontrado: \(suggestedTitle)")
+                                    print("📄 Suggested title found: \(suggestedTitle)")
                                 }
                                 
-                                // 2. Extraer resumen directamente del JSON
+                                // 2. Extract summary directly from JSON
                                 if let extractedSummary = jsonObj["summary"] as? String, !extractedSummary.isEmpty {
                                     summary = extractedSummary
-                                    print("📄 Resumen encontrado (primeros 30 chars): \(summary.prefix(30))")
+                                    print("📄 Summary found (first 30 chars): \(summary.prefix(30))")
                                 }
                                 
-                                // 3. Si no se encontraron los campos directamente, buscar en el formato de OpenAI
+                                // 3. If no fields were found directly, search in OpenAI format
                                 if (suggestedTitle.isEmpty || summary.isEmpty),
                                    let choices = jsonObj["choices"] as? [[String: Any]],
                                    let firstChoice = choices.first,
                                    let message = firstChoice["message"] as? [String: Any],
                                    let content = message["content"] as? String {
                                     
-                                    print("📄 Encontrado contenido en formato OpenAI")
+                                    print("📄 Found content in OpenAI format")
                                     
-                                    // Si no hay resumen, usar el contenido
+                                    // If there's no summary, use the content
                                     if summary.isEmpty {
                                         summary = content
                                     }
                                     
-                                    // Buscar un suggestedTitle en el contenido si no se encontró
+                                    // Search for a suggestedTitle in the content if not found
                                     if suggestedTitle.isEmpty {
-                                        // Usar expresión regular para encontrar el título sugerido
+                                        // Use regular expression to find the suggested title
                                         if let range = content.range(of: "\"suggestedTitle\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
                                             let extractedText = String(content[range])
                                             if let startQuote = extractedText.range(of: "\":", options: .backwards)?.upperBound,
@@ -1218,7 +1218,7 @@ struct NotesListView: View {
                                                 suggestedTitle = String(extractedText[startQuote..<endQuote])
                                                     .trimmingCharacters(in: .whitespacesAndNewlines)
                                                     .replacingOccurrences(of: "\"", with: "")
-                                                print("📄 Título sugerido extraído del contenido: \(suggestedTitle)")
+                                                print("📄 Suggested title extracted from content: \(suggestedTitle)")
                                             }
                                         } else if let range = content.range(of: "suggestedTitle:\\s*([^\\n]*)", options: .regularExpression) {
                                             let extractedText = String(content[range])
@@ -1227,36 +1227,36 @@ struct NotesListView: View {
                                                 suggestedTitle = String(extractedText[startIndex...])
                                                     .trimmingCharacters(in: .whitespacesAndNewlines)
                                                     .replacingOccurrences(of: "\"", with: "")
-                                                print("📄 Título sugerido extraído del contenido (formato alternativo): \(suggestedTitle)")
+                                                print("📄 Suggested title extracted from content (alternative format): \(suggestedTitle)")
                                             }
                                         }
                                     }
                                 }
                                 
-                                // Si aún no se ha encontrado un título sugerido, usar un valor predeterminado
+                                // If a suggested title still hasn't been found, use a default value
                                 if suggestedTitle.isEmpty {
                                     let defaultTitle = jsonObj["suggestedTitle"] as? String
-                                    suggestedTitle = defaultTitle != nil && !defaultTitle!.isEmpty ? defaultTitle! : "💬 Transcripción"
+                                    suggestedTitle = defaultTitle != nil && !defaultTitle!.isEmpty ? defaultTitle! : "💬 Transcription"
                                 }
                                 
-                                // Crear una nota con los datos extraídos
+                                // Create a note with the extracted data
                                 let note = AnalyzedNote(
                                     id: UUID(),
                                     title: title,
-                                    summary: fileContent,         // Guardar contenido completo para preservar
+                                    summary: fileContent,         // Save complete content to preserve
                                     folderURL: folderURL,
                                     created: creationDate,
                                     suggestedTitle: suggestedTitle,
-                                    processedSummary: summary     // Resumen procesado (si existe)
+                                    processedSummary: summary     // Processed summary (if exists)
                                 )
                                 
                                 notes.append(note)
                                 continue
                             }
                         } catch {
-                            print("⚠️ No se pudo parsear el JSON del archivo analysis.json")
+                            print("⚠️ JSON could not be parsed from analysis.json file")
                             
-                            // Si no se pudo parsear el JSON, intentar extraer con expresiones regulares
+                            // If JSON could not be parsed, try extracting with regular expressions
                             if let suggestedTitleMatch = fileContent.range(of: "\"suggestedTitle\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
                                 let suggestedTitleText = String(fileContent[suggestedTitleMatch])
                                 if let startQuote = suggestedTitleText.range(of: "\":", options: .backwards)?.upperBound,
@@ -1264,7 +1264,7 @@ struct NotesListView: View {
                                    startQuote < endQuote {
                                     suggestedTitle = String(suggestedTitleText[startQuote..<endQuote])
                                         .trimmingCharacters(in: .whitespacesAndNewlines)
-                                    print("📄 Título sugerido extraído con regex: \(suggestedTitle)")
+                                    print("📄 Suggested title extracted with regex: \(suggestedTitle)")
                                 }
                             }
                             
@@ -1275,15 +1275,15 @@ struct NotesListView: View {
                                    startQuote < endQuote {
                                     summary = String(summaryText[startQuote..<endQuote])
                                         .trimmingCharacters(in: .whitespacesAndNewlines)
-                                    print("📄 Resumen extraído con regex (primeros 30 chars): \(summary.prefix(30))")
+                                    print("📄 Summary extracted with regex (first 30 chars): \(summary.prefix(30))")
                                 }
                             }
                             
                             if suggestedTitle.isEmpty {
-                                suggestedTitle = "💬 Transcripción"
+                                suggestedTitle = "💬 Transcription"
                             }
                             
-                            // Crear nota con los datos extraídos mediante regex
+                            // Create note with extracted data using regex
                             let note = AnalyzedNote(
                                 id: UUID(),
                                 title: title,
@@ -1309,12 +1309,12 @@ struct NotesListView: View {
                             if !transcript.isEmpty {
                                 let note = AnalyzedNote(
                                     id: UUID(),
-                                    title: "Transcripción \(folderURL.lastPathComponent)",
+                                    title: "Transcription \(folderURL.lastPathComponent)",
                                     summary: transcript,
                                     folderURL: folderURL,
                                     created: creationDate,
-                                    suggestedTitle: "💬 Transcripción simple",
-                                    processedSummary: transcript // Para transcripciones simples, el contenido ya es texto plano
+                                    suggestedTitle: "💬 Simple transcription",
+                                    processedSummary: transcript // For simple transcriptions, the content is already plain text
                                 )
                                 
                                 notes.append(note)
@@ -1329,37 +1329,37 @@ struct NotesListView: View {
             print("❌ Error listing folders: \(error)")
         }
         
-        print("📊 Total notes loaded: \(notes.count)")
+        print("�� Total notes loaded: \(notes.count)")
         return notes
     }
 }
 
-// Note detail view - SIMPLIFICADA PARA EVITAR ERRORES
+// Note detail view - SIMPLIFIED FOR ERRORS
 struct NoteDetailView: View {
     let note: AnalyzedNote
     @Environment(\.colorScheme) private var colorScheme
     @State private var showCopiedMessage: Bool = false
     
-    // Extraer resumen limpio para visualización
+    // Extract clean summary for display
     private var displaySummary: String {
-        // Si es JSON, intentar múltiples formatos
+        // If it's JSON, try multiple formats
         if note.summary.starts(with: "{") {
             do {
                 if let jsonData = note.summary.data(using: .utf8),
                    let jsonObj = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
                     
-                    // 1. Intentar extraer directamente del campo "summary"
+                    // 1. Try to extract directly from the "summary" field
                     if let summaryValue = jsonObj["summary"] as? String, !summaryValue.isEmpty {
                         return summaryValue
                     }
                     
-                    // 2. Buscar en formato de respuesta de OpenAI
+                    // 2. Search in OpenAI response format
                     if let choices = jsonObj["choices"] as? [[String: Any]],
                        let firstChoice = choices.first,
                        let message = firstChoice["message"] as? [String: Any],
                        let content = message["content"] as? String {
                         
-                        // 2.1 Buscar el campo "summary" dentro del contenido
+                        // 2.1 Search for the "summary" field within the content
                         if let range = content.range(of: "\"summary\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
                             let extractedText = String(content[range])
                             if let startQuote = extractedText.range(of: "\":", options: .backwards)?.upperBound,
@@ -1374,17 +1374,17 @@ struct NoteDetailView: View {
                             }
                         }
                         
-                        // 2.2 Si no hay campo summary específico, usar todo el contenido
+                        // 2.2 If there's no specific summary field, use all content
                         if !content.isEmpty {
                             return content
                         }
                     }
                 }
             } catch {
-                print("Error procesando JSON para summary: \(error)")
+                print("Error processing JSON for summary: \(error)")
             }
             
-            // 3. Intentar extraer con regex si falló el parsing JSON
+            // 3. Try to extract with regex if parsing JSON failed
             if let summaryMatch = note.summary.range(of: "\"summary\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
                 let summaryText = String(note.summary[summaryMatch])
                 if let startQuote = summaryText.range(of: "\":", options: .backwards)?.upperBound,
@@ -1399,19 +1399,19 @@ struct NoteDetailView: View {
             }
         }
         
-        // Si no pudimos obtener el summary del JSON, devolver algún contenido alternativo
+        // If we couldn't get the summary from JSON, return some alternative content
         if let processed = note.processedSummary, !processed.isEmpty {
             return processed
         }
         
-        // Si todo lo demás falla, devolver el contenido completo
-        return note.summary.isEmpty ? "No se pudo extraer el contenido del summary" : note.summary
+        // If everything else fails, return the complete content
+        return note.summary.isEmpty ? "No content could be extracted from summary" : note.summary
     }
     
-    // Extraer solo el ID del título si es un UUID
+    // Extract only the ID from the title if it's a UUID
     private var displayOriginalTitle: String {
-        // Si el título empieza con "Nota " seguido de un UUID, extraer solo el UUID
-        if note.title.starts(with: "Nota ") {
+        // If the title starts with "Note " followed by a UUID, extract just the UUID
+        if note.title.starts(with: "Note ") {
             let components = note.title.components(separatedBy: " ")
             if components.count > 1 {
                 return "ID: \(components[1].prefix(8))..."
@@ -1420,27 +1420,27 @@ struct NoteDetailView: View {
         return note.title
     }
     
-    // Convertir el resumen a formato markdown
+    // Convert summary to markdown format
     private var markdownContent: String {
         var markdown = """
         # \(note.suggestedTitle)
         
         """
         
-        // Añadir ID como metadato
+        // Add ID as metadata
         markdown += """
         > ID: \(note.id)
         
         """
         
-        // Añadir el contenido del resumen (limpio)
+        // Add the content of the summary (cleaned)
         markdown += displaySummary
         
-        // Añadir metadatos al final
+        // Add metadata at the end
         markdown += """
         
         ---
-        Fecha: \(formatDate(note.created))
+        Date: \(formatDate(note.created))
         """
         
         return markdown
@@ -1448,14 +1448,14 @@ struct NoteDetailView: View {
     
     var body: some View {
         ZStack {
-            // Fondo general adaptativo
+            // General adaptive background
             Color("Background").ignoresSafeArea()
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Encabezado con título
+                    // Header with title
                     VStack(alignment: .leading, spacing: 8) {
-                        // Título principal (suggestedTitle)
+                        // Main title (suggestedTitle)
                         HStack {
                             Image(systemName: "doc.text")
                                 .font(.title)
@@ -1467,12 +1467,12 @@ struct NoteDetailView: View {
                                 .foregroundColor(AppColors.adaptiveText)
                         }
                         
-                        // Fecha destacada
+                        // Featured date
                         HStack {
                             Image(systemName: "calendar")
                                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
                             
-                            Text("Fecha: \(formatDate(note.created))")
+                            Text("Date: \(formatDate(note.created))")
                                 .font(.subheadline)
                                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
                         }
@@ -1484,7 +1484,7 @@ struct NoteDetailView: View {
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.08 : 0.12), radius: 3, x: 0, y: 2)
                     
-                    // Original title (si hay título sugerido y es diferente)
+                    // Original title (if there's a suggested title and it's different)
                     if !note.suggestedTitle.isEmpty && note.suggestedTitle != note.title {
                         HStack {
                             Image(systemName: "character.book.closed")
@@ -1504,7 +1504,7 @@ struct NoteDetailView: View {
                                 .font(.system(size: 36))
                                 .foregroundColor(.red.opacity(0.8))
                             
-                            Text("No hay contenido disponible para esta nota")
+                            Text("No content available for this note")
                                 .font(.headline)
                                 .foregroundColor(.red)
                                 .multilineTextAlignment(.center)
@@ -1516,19 +1516,19 @@ struct NoteDetailView: View {
                                 .fill(Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05))
                         )
                     } else {
-                        // Tarjeta de contenido con título
+                        // Content card with title
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Image(systemName: "text.bubble")
                                     .foregroundColor(AppColors.adaptiveTint)
                                 
-                                Text("Contenido")
+                                Text("Content")
                                     .font(.headline)
                                     .foregroundColor(AppColors.adaptiveText)
                                 
                                 Spacer()
                                 
-                                // Botón pequeño para copiar
+                                // Small button to copy
                                 Button {
                                     UIPasteboard.general.string = markdownContent
                                     
@@ -1536,7 +1536,7 @@ struct NoteDetailView: View {
                                         showCopiedMessage = true
                                     }
                                     
-                                    // Ocultar el mensaje después de 2 segundos
+                                    // Hide message after 2 seconds
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                                         withAnimation {
                                             showCopiedMessage = false
@@ -1557,7 +1557,7 @@ struct NoteDetailView: View {
                             .overlay(
                                 ZStack {
                                     if showCopiedMessage {
-                                        Text("¡Copiado!")
+                                        Text("Copied!")
                                             .font(.caption2)
                                             .fontWeight(.medium)
                                             .padding(5)
@@ -1569,7 +1569,7 @@ struct NoteDetailView: View {
                                 }
                             )
                             
-                            // Texto del contenido completo (summary) con soporte para Markdown
+                            // Text content of the summary (summary) with Markdown support
                             MarkdownText(markdown: displaySummary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -1589,19 +1589,19 @@ struct NoteDetailView: View {
             }
             .scrollIndicators(.hidden)
         }
-        .navigationTitle("Detalle de Nota")
+        .navigationTitle("Note Detail")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            print("📝 NoteDetailView apareció")
-            print("📝 Título: \(note.title)")
-            print("📝 Título sugerido: \(note.suggestedTitle)")
+            print("📝 NoteDetailView appeared")
+            print("📝 Title: \(note.title)")
+            print("📝 Suggested title: \(note.suggestedTitle)")
             print("📝 ID: \(note.id)")
-            print("📝 Longitud: \(note.summary.count)")
-            print("📝 Primeros 50 caracteres: \(note.summary.prefix(50))")
+            print("📝 Length: \(note.summary.count)")
+            print("📝 First 50 characters: \(note.summary.prefix(50))")
             
             // Extra debug for content
             if note.summary.isEmpty {
-                print("⚠️ ALERTA: El contenido de la nota está vacío")
+                print("⚠️ ALERT: Note content is empty")
             }
         }
     }
@@ -1621,19 +1621,19 @@ struct AnalyzedNote: Identifiable {
     let summary: String
     let folderURL: URL
     let created: Date
-    let suggestedTitle: String // Título sugerido para mostrar en la vista de detalle
+    let suggestedTitle: String // Suggested title to display in detail view
     let processedSummary: String? // Optional processed summary
     
-    // Inicializador con valores por defecto para evitar valores nulos
+    // Inicializador with default values to avoid null values
     init(id: UUID = UUID(), 
-         title: String = "Nota sin título", 
+         title: String = "Untitled note", 
          summary: String = "", 
          folderURL: URL, 
          created: Date = Date(),
          suggestedTitle: String = "",
          processedSummary: String? = nil) {
         self.id = id
-        self.title = title.isEmpty ? "Nota sin título" : title
+        self.title = title.isEmpty ? "Untitled note" : title
         self.summary = summary
         self.folderURL = folderURL
         self.created = created
@@ -1641,12 +1641,12 @@ struct AnalyzedNote: Identifiable {
         self.processedSummary = processedSummary
     }
     
-    // Método para verificar la validez de la nota
+    // Method to verify the validity of the note
     func isValid() -> Bool {
         return !summary.isEmpty
     }
     
-    // Añadir método para depuración
+    // Add method for debugging
     func debugDescription() -> String {
         return """
         ID: \(id)
@@ -1699,7 +1699,7 @@ struct NoteCell: View {
     let note: AnalyzedNote
     @Environment(\.colorScheme) private var colorScheme
     
-    // Extraer título real a mostrar
+    // Extract real title to display
     private var displayTitle: String {
         if !note.suggestedTitle.isEmpty {
             return note.suggestedTitle
@@ -1707,26 +1707,26 @@ struct NoteCell: View {
         return note.title
     }
     
-    // Extraer resumen limpio para visualización
+    // Extract clean summary for display
     private var displaySummary: String {
-        // Si es JSON, intentar múltiples formatos
+        // If it's JSON, try multiple formats
         if note.summary.starts(with: "{") {
             do {
                 if let jsonData = note.summary.data(using: .utf8),
                    let jsonObj = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
                     
-                    // 1. Intentar extraer directamente del campo "summary"
+                    // 1. Try to extract directly from the "summary" field
                     if let summaryValue = jsonObj["summary"] as? String, !summaryValue.isEmpty {
                         return summaryValue
                     }
                     
-                    // 2. Buscar en formato de respuesta de OpenAI
+                    // 2. Search in OpenAI response format
                     if let choices = jsonObj["choices"] as? [[String: Any]],
                        let firstChoice = choices.first,
                        let message = firstChoice["message"] as? [String: Any],
                        let content = message["content"] as? String {
                         
-                        // 2.1 Buscar el campo "summary" dentro del contenido
+                        // 2.1 Search for the "summary" field within the content
                         if let range = content.range(of: "\"summary\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
                             let extractedText = String(content[range])
                             if let startQuote = extractedText.range(of: "\":", options: .backwards)?.upperBound,
@@ -1741,17 +1741,17 @@ struct NoteCell: View {
                             }
                         }
                         
-                        // 2.2 Si no hay campo summary específico, usar todo el contenido
+                        // 2.2 If there's no specific summary field, use all content
                         if !content.isEmpty {
                             return content
                         }
                     }
                 }
             } catch {
-                print("Error procesando JSON para summary: \(error)")
+                print("Error processing JSON for summary: \(error)")
             }
             
-            // 3. Intentar extraer con regex si falló el parsing JSON
+            // 3. Try to extract with regex if parsing JSON failed
             if let summaryMatch = note.summary.range(of: "\"summary\"\\s*:\\s*\"([^\"]*)\"", options: .regularExpression) {
                 let summaryText = String(note.summary[summaryMatch])
                 if let startQuote = summaryText.range(of: "\":", options: .backwards)?.upperBound,
@@ -1766,25 +1766,25 @@ struct NoteCell: View {
             }
         }
         
-        // Si no pudimos obtener el summary del JSON, devolver algún contenido alternativo
+        // If we couldn't get the summary from JSON, return some alternative content
         if let processed = note.processedSummary, !processed.isEmpty {
             return processed
         }
         
-        // Si todo lo demás falla, devolver el contenido completo
-        return note.summary.isEmpty ? "No se pudo extraer el contenido del summary" : note.summary
+        // If everything else fails, return the complete content
+        return note.summary.isEmpty ? "No content could be extracted from summary" : note.summary
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Título principal (suggestedTitle)
+            // Main title (suggestedTitle)
             Text(displayTitle)
                 .font(.headline)
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .padding(.bottom, 2)
             
-            // Fecha
+            // Date
             Text(formatDate(note.created))
                 .font(.caption2)
                 .foregroundColor(.secondary)
@@ -1794,7 +1794,7 @@ struct NoteCell: View {
                 Divider()
                     .padding(.vertical, 4)
                 
-                // Mostrar resumen truncado, limpiando posibles marcadores Markdown
+                // Show truncated summary, cleaning possible Markdown markers
                 let plainText = cleanMarkdownText(displaySummary.prefix(150))
                 Text(plainText + (displaySummary.count > 150 ? "..." : ""))
                     .font(.caption)
@@ -1803,7 +1803,7 @@ struct NoteCell: View {
                     .padding(.top, 2)
             }
             
-            // Indicador de navegación
+            // Navigation indicator
             HStack {
                 Spacer()
                 Image(systemName: "chevron.right")
@@ -1829,24 +1829,24 @@ struct NoteCell: View {
         return formatter.string(from: date)
     }
     
-    // Función para limpiar marcadores básicos de Markdown para previsualización
+    // Function to clean basic Markdown markers for preview
     private func cleanMarkdownText(_ text: String.SubSequence) -> String {
         var result = String(text)
         
-        // Eliminar encabezados (#)
+        // Remove headers (#)
         result = result.replacingOccurrences(of: #"^\s*#{1,6}\s+"#, with: "", options: .regularExpression, range: nil)
         
-        // Eliminar marcadores de negrita/cursiva
+        // Remove bold/italic markers
         result = result.replacingOccurrences(of: "[*_]{1,2}", with: "", options: .regularExpression, range: nil)
         
-        // Eliminar marcadores de código
+        // Remove code markers
         result = result.replacingOccurrences(of: "`", with: "")
         
-        // Eliminar marcadores de listas
+        // Remove list markers
         result = result.replacingOccurrences(of: #"^\s*[\-\*\+]\s+"#, with: "• ", options: .regularExpression, range: nil)
         result = result.replacingOccurrences(of: #"^\s*\d+\.\s+"#, with: "• ", options: .regularExpression, range: nil)
         
-        // Reemplazar múltiples espacios con uno solo
+        // Replace multiple spaces with one space
         result = result.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression, range: nil)
         
         return result
