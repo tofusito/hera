@@ -203,6 +203,7 @@ So I built an app that pays attention like she does.
 - ☁️ iCloud sync  
 - 📄 Export to PDF  
 - 🔗 Share recordings & docs with friends  
+- 💰 Cost display after each transcription analysis  
 - 🐈 Animated Hera mood tracker (yes, seriously)
 
 ---
