@@ -33,16 +33,32 @@ struct MarkdownText: View {
     }
     
     var body: some View {
-        if #available(iOS 15.0, *) {
-            renderMarkdown()
+        if #available(iOS 16.0, *) {
+            // Use Swift's latest built-in Markdown support for iOS 16+
+            renderMarkdownWithTextMarkdown()
+        } else if #available(iOS 15.0, *) {
+            // iOS 15 AttributedString API
+            renderMarkdownWithAttributedString()
         } else {
-            // iOS 14: Fallback to plain text
-            plainText
+            // iOS 14: Fallback to plain text or custom renderer
+            if containsMarkdown(processedText) {
+                MarkdownTextCustomRenderer(text: processedText)
+            } else {
+                plainText
+            }
         }
     }
     
+    @available(iOS 16.0, *)
+    private func renderMarkdownWithTextMarkdown() -> some View {
+        Text(.init(processedText))
+            .font(font)
+            .lineSpacing(lineSpacing)
+            .textSelection(.enabled)
+    }
+    
     @available(iOS 15.0, *)
-    private func renderMarkdown() -> some View {
+    private func renderMarkdownWithAttributedString() -> some View {
         let options = AttributedString.MarkdownParsingOptions(
             allowsExtendedAttributes: true,
             interpretedSyntax: .full,  // Interpret all Markdown syntax
@@ -156,6 +172,7 @@ struct MarkdownTextCustomRenderer: View {
                         .cornerRadius(4)
                 case .normal:
                     Text(line.text)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }

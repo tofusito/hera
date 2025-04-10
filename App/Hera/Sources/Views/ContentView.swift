@@ -117,6 +117,10 @@ struct ContentView: View {
     
     @State private var isDebugModeEnabled = true // Variables para diagnóstico
     
+    // Estados para selección múltiple
+    @State private var isSelectionMode = false
+    @State private var selectedRecordings = Set<UUID>()
+    
     // Colores personalizados
     private let iconColor = Color("PrimaryText") // Color adaptativo para iconos
     
@@ -318,29 +322,89 @@ struct ContentView: View {
     @ViewBuilder
     private func recordingListView() -> some View {
         VStack {
-            // Search bar
-            SearchBar(text: $searchText, placeholder: "Search recordings")
+            // Barra superior con search bar y botón de selección
+            HStack {
+                // Search bar
+                SearchBar(text: $searchText, placeholder: "Search recordings")
+                    .padding(.leading)
+                
+                // Botón de selección
+                Button(action: {
+                    isSelectionMode.toggle()
+                    if !isSelectionMode {
+                        selectedRecordings.removeAll()
+                    }
+                }) {
+                    Text(isSelectionMode ? "Cancel" : "Select")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.adaptiveTint)
+                }
+                .padding(.trailing)
+            }
+            .padding(.top, 8)
+            
+            // Si está en modo selección y hay elementos seleccionados, mostrar barra de acciones
+            if isSelectionMode && !selectedRecordings.isEmpty {
+                HStack {
+                    Text("\(selectedRecordings.count) \(selectedRecordings.count == 1 ? "recording" : "recordings")")
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.adaptiveText)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        deleteSelectedRecordings()
+                    }) {
+                        Label("Delete", systemImage: "trash")
+                            .foregroundColor(.red)
+                    }
+                }
                 .padding(.horizontal)
-                .padding(.top, 8)
+                .padding(.vertical, 8)
+                .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color.gray.opacity(0.1))
+            }
             
             ScrollView {
                 LazyVStack(spacing: 12) {
                     let recordingsToShow = searchText.isEmpty ? displayableRecordings : filteredRecordings
                     
                     ForEach(recordingsToShow) { recording in
-                        DisplayableRecordingCell(recording: recording)
-                            .contentShape(Rectangle())
-                            .shadow(color: colorScheme == .dark ?
-                                    Color.black.opacity(0.08) :
-                                    Color.black.opacity(0.12),
-                                    radius: 3, x: 0, y: 2)
-                            .padding(.horizontal)
-                            .padding(.vertical, 2)
-                            .onTapGesture {
-                                handleRecordingTap(recording)
+                        HStack {
+                            if isSelectionMode {
+                                Button(action: {
+                                    toggleSelection(recording.id)
+                                }) {
+                                    Image(systemName: selectedRecordings.contains(recording.id) ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(selectedRecordings.contains(recording.id) ? AppColors.adaptiveTint : .gray)
+                                        .font(.system(size: 20))
+                                        .padding(.leading, 4)
+                                }
                             }
+                            
+                            DisplayableRecordingCell(recording: recording)
+                                .contentShape(Rectangle())
+                                .shadow(color: colorScheme == .dark ?
+                                        Color.black.opacity(0.08) :
+                                        Color.black.opacity(0.12),
+                                        radius: 3, x: 0, y: 2)
+                                .onTapGesture {
+                                    if isSelectionMode {
+                                        toggleSelection(recording.id)
+                                    } else {
+                                        handleRecordingTap(recording)
+                                    }
+                                }
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 2)
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                deleteRecording(recording)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
-                    .onDelete(perform: deleteRecordingsFromFilesystem)
                 }
                 .padding(.vertical)
             }
@@ -389,11 +453,11 @@ struct ContentView: View {
                         
                         // Main circle with soft border
                         Circle()
-                            .fill(Color(.white).opacity(colorScheme == .dark ? 0.2 : 0.9))
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.2) : Color("OffWhiteBackground").opacity(0.9))
                             .frame(width: 66, height: 66)
                             .overlay(
                                 Circle()
-                                    .stroke(Color(.white), lineWidth: colorScheme == .dark ? 1.5 : 0.5)
+                                    .stroke(colorScheme == .dark ? Color.white : Color("OffWhiteBackground"), lineWidth: colorScheme == .dark ? 1.5 : 0.5)
                                     .opacity(colorScheme == .dark ? 0.5 : 0.8)
                             )
                             .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
@@ -665,10 +729,16 @@ struct ContentView: View {
         
         if !orphanedIds.isEmpty {
             print("Removing orphaned entries from SwiftData: \(orphanedIds)")
-            let fetchDescriptor = FetchDescriptor<AudioRecording>(predicate: #Predicate { orphanedIds.contains($0.id) })
+            
+            // Cargar todos los registros y filtrar por ID
+            let fetchDescriptor = FetchDescriptor<AudioRecording>()
             do {
-                let dataToDelete = try modelContext.fetch(fetchDescriptor)
-                for item in dataToDelete {
+                let allRecordings = try modelContext.fetch(fetchDescriptor)
+                let recordingsToDelete = allRecordings.filter { recording in
+                    orphanedIds.contains(recording.id)
+                }
+                
+                for item in recordingsToDelete {
                     modelContext.delete(item)
                 }
                 try modelContext.save()
@@ -784,6 +854,104 @@ struct ContentView: View {
             }
         }
     }
+    
+    // Function to toggle the selection of a recording
+    private func toggleSelection(_ id: UUID) {
+        if selectedRecordings.contains(id) {
+            selectedRecordings.remove(id)
+        } else {
+            selectedRecordings.insert(id)
+        }
+    }
+    
+    // Function to delete selected recordings
+    private func deleteSelectedRecordings() {
+        withAnimation {
+            // Get indices of selected recordings
+            let indicesToDelete = displayableRecordings.indices.filter { selectedRecordings.contains(displayableRecordings[$0].id) }
+            
+            if !indicesToDelete.isEmpty {
+                let idsToDelete = indicesToDelete.map { displayableRecordings[$0].id }
+                let foldersToDelete = indicesToDelete.map { displayableRecordings[$0].folderURL }
+                
+                for folderURL in foldersToDelete {
+                    do {
+                        if FileManager.default.fileExists(atPath: folderURL.path) {
+                            try FileManager.default.removeItem(at: folderURL)
+                            print("Deleted folder: \(folderURL.lastPathComponent)")
+                        }
+                    } catch {
+                        print("Error deleting folder \(folderURL.lastPathComponent): \(error)")
+                    }
+                }
+                
+                // Also delete from SwiftData
+                // Function to check if the ID is in the array
+                let fetchDescriptor = FetchDescriptor<AudioRecording>()
+                do {
+                    let allRecordings = try modelContext.fetch(fetchDescriptor)
+                    let recordingsToDelete = allRecordings.filter { recording in 
+                        idsToDelete.contains(recording.id)
+                    }
+                    
+                    // Delete records
+                    for item in recordingsToDelete {
+                        modelContext.delete(item)
+                    }
+                    try modelContext.save()
+                } catch {
+                     print("Error deleting from SwiftData: \(error)")
+                }
+                
+                // Update UI list
+                // Delete in reverse order to avoid index problems
+                for index in indicesToDelete.sorted(by: >) {
+                    if index < displayableRecordings.count {
+                        displayableRecordings.remove(at: index)
+                    }
+                }
+                
+                // Clear selections
+                selectedRecordings.removeAll()
+                isSelectionMode = false
+            }
+        }
+    }
+    
+    // Function to delete a single recording
+    private func deleteRecording(_ recording: DisplayableRecording) {
+        withAnimation {
+            if let index = displayableRecordings.firstIndex(where: { $0.id == recording.id }) {
+                let folderURL = recording.folderURL
+                
+                do {
+                    if FileManager.default.fileExists(atPath: folderURL.path) {
+                        try FileManager.default.removeItem(at: folderURL)
+                        print("Deleted folder: \(folderURL.lastPathComponent)")
+                    }
+                } catch {
+                    print("Error deleting folder \(folderURL.lastPathComponent): \(error)")
+                }
+                
+                // También eliminar de SwiftData
+                // Cargar todos los registros y filtrar por ID
+                let fetchDescriptor = FetchDescriptor<AudioRecording>()
+                do {
+                    let allRecordings = try modelContext.fetch(fetchDescriptor)
+                    // Buscar el registro por ID
+                    if let recordingToDelete = allRecordings.first(where: { $0.id == recording.id }) {
+                        modelContext.delete(recordingToDelete)
+                        try modelContext.save()
+                    }
+                } catch {
+                     print("Error deleting from SwiftData: \(error)")
+                }
+                
+                // Actualizar UI list
+                displayableRecordings.remove(at: index)
+            }
+        }
+    }
 }
 
 // Nueva celda para DisplayableRecording
@@ -815,7 +983,7 @@ struct DisplayableRecordingCell: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
-        .background(colorScheme == .dark ? Color("CardBackground") : .white)
+        .background(colorScheme == .dark ? Color("CardBackground") : Color("CardBackground"))
         .cornerRadius(12)
     }
 
@@ -908,6 +1076,7 @@ struct APISettingsView: View {
     @AppStorage("openai_api_key") private var openAIKey = ""
     @AppStorage("gemini_api_key") private var geminiKey = ""
     @AppStorage("anthropic_api_key") private var anthropicKey = ""
+    @AppStorage("forced_theme") private var forcedTheme = 0 // 0 = System, 1 = Light, 2 = Dark
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
@@ -915,12 +1084,13 @@ struct APISettingsView: View {
     @State private var originalOpenAIKey = ""
     @State private var originalGeminiKey = ""
     @State private var originalAnthropicKey = ""
+    @State private var originalForcedTheme = 0
     
     var body: some View {
         NavigationStack {
             ZStack {
                 // Fondo general más claro en modo oscuro
-                colorScheme == .dark ? Color("ListBackground") : Color(UIColor.systemGroupedBackground)
+                colorScheme == .dark ? Color("ListBackground") : Color("OffWhiteBackground")
                 
                 Form {
                     Section(header: Text("OpenAI API Key")) {
@@ -930,16 +1100,29 @@ struct APISettingsView: View {
                             .font(.system(.body, design: .monospaced))
                     }
                     
+                    Section(header: Text("Theme Settings")) {
+                        Picker("App Theme", selection: $forcedTheme) {
+                            Text("System Default").tag(0)
+                            Text("Light Mode").tag(1)
+                            Text("Dark Mode").tag(2)
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    
                     // Explicación
                     Section(header: Text("Information")) {
                         Text("An API key is required for transcription and analysis features. You can get one from [openai.com](https://platform.openai.com/account/api-keys)")
                             .font(.footnote)
+                        
+                        Text("Theme changes will take effect when you restart the app.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
                     }
                 }
                 .scrollIndicators(.hidden)
                 .background(Color.clear)
             }
-            .navigationTitle("API Settings")
+            .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -956,6 +1139,7 @@ struct APISettingsView: View {
                         openAIKey = originalOpenAIKey
                         geminiKey = originalGeminiKey
                         anthropicKey = originalAnthropicKey
+                        forcedTheme = originalForcedTheme
                         dismiss()
                     }
                     .foregroundColor(AppColors.adaptiveText)
@@ -966,9 +1150,22 @@ struct APISettingsView: View {
                 originalOpenAIKey = openAIKey
                 originalGeminiKey = geminiKey
                 originalAnthropicKey = anthropicKey
+                originalForcedTheme = forcedTheme
             }
         }
+        .preferredColorScheme(getPreferredColorScheme())
         .tint(AppColors.adaptiveTint)
+    }
+    
+    private func getPreferredColorScheme() -> ColorScheme? {
+        switch forcedTheme {
+        case 1:
+            return .light
+        case 2:
+            return .dark
+        default:
+            return nil // system default
+        }
     }
 }
 
@@ -981,6 +1178,10 @@ struct NotesListView: View {
     @State private var isLoading = true
     @State private var selectedNote: AnalyzedNote? = nil
     @State private var showDetailView = false
+    
+    // Estados para selección múltiple
+    @State private var isSelectionMode = false
+    @State private var selectedNotes = Set<UUID>()
     
     var body: some View {
         NavigationStack {
@@ -1009,20 +1210,83 @@ struct NotesListView: View {
                         }
                         .padding()
                     } else {
+                        // Barra superior con search bar y botón de selección
+                        HStack {
+                            SearchBar(text: $searchText, placeholder: "Search notes")
+                                .padding(.leading)
+                            
+                            Button(action: {
+                                isSelectionMode.toggle()
+                                if !isSelectionMode {
+                                    selectedNotes.removeAll()
+                                }
+                            }) {
+                                Text(isSelectionMode ? "Cancel" : "Select")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(AppColors.adaptiveTint)
+                            }
+                            .padding(.trailing)
+                        }
+                        .padding(.top, 8)
+                        
+                        // Si está en modo selección y hay elementos seleccionados, mostrar barra de acciones
+                        if isSelectionMode && !selectedNotes.isEmpty {
+                            HStack {
+                                Text("\(selectedNotes.count) \(selectedNotes.count == 1 ? "note" : "notes")")
+                                    .font(.subheadline)
+                                    .foregroundColor(AppColors.adaptiveText)
+                                
+                                Spacer()
+                                
+                                Button(action: {
+                                    deleteSelectedNotes()
+                                }) {
+                                    Label("Delete", systemImage: "trash")
+                                        .foregroundColor(.red)
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                            .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color.gray.opacity(0.1))
+                        }
+                        
                         ScrollView {
                             LazyVStack(spacing: 12) {
                                 ForEach(analyzedNotes) { note in
-                                    NoteCell(note: note)
-                                        .contentShape(Rectangle())
-                                        .shadow(color: Color.black.opacity(0.12),
-                                                radius: 3, x: 0, y: 2)
-                                        .padding(.horizontal)
-                                        .padding(.vertical, 2)
-                                        .onTapGesture {
-                                            print("🔍 Note selected: \(note.title)")
-                                            selectedNote = note
-                                            showDetailView = true
+                                    HStack {
+                                        if isSelectionMode {
+                                            Button(action: {
+                                                toggleSelection(note.id)
+                                            }) {
+                                                Image(systemName: selectedNotes.contains(note.id) ? "checkmark.circle.fill" : "circle")
+                                                    .foregroundColor(selectedNotes.contains(note.id) ? AppColors.adaptiveTint : .gray)
+                                                    .font(.system(size: 20))
+                                                    .padding(.leading, 4)
+                                            }
                                         }
+                                        
+                                        NoteCell(note: note)
+                                            .contentShape(Rectangle())
+                                            .shadow(color: Color.black.opacity(0.12),
+                                                    radius: 3, x: 0, y: 2)
+                                            .onTapGesture {
+                                                if isSelectionMode {
+                                                    toggleSelection(note.id)
+                                                } else {
+                                                    print("🔍 Note selected: \(note.title)")
+                                                    selectedNote = note
+                                                }
+                                            }
+                                    }
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 2)
+                                    .swipeActions(edge: .trailing) {
+                                        Button(role: .destructive) {
+                                            deleteNote(note)
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
                                 }
                             }
                             .padding(.vertical)
@@ -1069,6 +1333,62 @@ struct NotesListView: View {
             }
         }
         .tint(AppColors.adaptiveTint)
+    }
+    
+    // Function to toggle the selection of a note
+    private func toggleSelection(_ id: UUID) {
+        if selectedNotes.contains(id) {
+            selectedNotes.remove(id)
+        } else {
+            selectedNotes.insert(id)
+        }
+    }
+    
+    // Function to delete a single note
+    private func deleteNote(_ note: AnalyzedNote) {
+        withAnimation {
+            if let index = analyzedNotes.firstIndex(where: { $0.id == note.id }) {
+                let folderURL = note.folderURL
+                if FileManager.default.fileExists(atPath: folderURL.path) {
+                    do {
+                        try FileManager.default.removeItem(at: folderURL)
+                        print("Deleted note folder: \(folderURL.lastPathComponent)")
+                    } catch {
+                        print("Error deleting note folder \(folderURL.lastPathComponent): \(error)")
+                    }
+                }
+                
+                // Update UI list
+                analyzedNotes.remove(at: index)
+            }
+        }
+    }
+    
+    // Function to delete selected notes
+    private func deleteSelectedNotes() {
+        withAnimation {
+            // Get indices of selected notes
+            let notesToDelete = analyzedNotes.filter { selectedNotes.contains($0.id) }
+            
+            for note in notesToDelete {
+                let folderURL = note.folderURL
+                if FileManager.default.fileExists(atPath: folderURL.path) {
+                    do {
+                        try FileManager.default.removeItem(at: folderURL)
+                        print("Deleted note folder: \(folderURL.lastPathComponent)")
+                    } catch {
+                        print("Error deleting note folder \(folderURL.lastPathComponent): \(error)")
+                    }
+                }
+            }
+            
+            // Update UI list
+            analyzedNotes.removeAll { selectedNotes.contains($0.id) }
+            
+            // Clear selections
+            selectedNotes.removeAll()
+            isSelectionMode = false
+        }
     }
     
     // Filter notes based on search text
@@ -1329,7 +1649,7 @@ struct NotesListView: View {
             print("❌ Error listing folders: \(error)")
         }
         
-        print("�� Total notes loaded: \(notes.count)")
+        print("📄 Total notes loaded: \(notes.count)")
         return notes
     }
 }
@@ -1480,7 +1800,7 @@ struct NoteDetailView: View {
                     .padding(.vertical, 10)
                     .padding(.horizontal, 16)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(colorScheme == .dark ? Color("CardBackground").opacity(0.6) : Color.white.opacity(0.8))
+                    .background(colorScheme == .dark ? Color("CardBackground").opacity(0.6) : Color("CardBackground").opacity(0.9))
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.08 : 0.12), radius: 3, x: 0, y: 2)
                     
@@ -1576,7 +1896,7 @@ struct NoteDetailView: View {
                         .padding(16)
                         .background(
                             RoundedRectangle(cornerRadius: 12)
-                                .fill(colorScheme == .dark ? Color("CardBackground") : Color.white)
+                                .fill(colorScheme == .dark ? Color("CardBackground") : Color("CardBackground"))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
@@ -1816,7 +2136,7 @@ struct NoteCell: View {
         .padding(.horizontal, 16)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(colorScheme == .dark ? Color("CardBackground") : .white)
+                .fill(colorScheme == .dark ? Color("CardBackground") : Color("CardBackground"))
                 .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
         )
     }
@@ -1862,3 +2182,4 @@ struct NoteCell: View {
         return Text("Error creating ModelContainer: \(error.localizedDescription)")
     }
 }
+

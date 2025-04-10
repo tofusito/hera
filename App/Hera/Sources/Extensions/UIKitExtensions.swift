@@ -50,14 +50,46 @@ extension UIColor {
     }
 }
 
-// Estructura para inicializar la configuración global
-struct UIKitAppearanceModifier: ViewModifier {
-    init() {
+// Controlador para detectar cambios en el tema del sistema
+class ThemeObserverViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.isHidden = true
+        view.isUserInteractionEnabled = false
         UIColor.configureGlobalAppearance()
     }
     
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        
+        // Verificar si el estilo de interfaz de usuario (oscuro/claro) ha cambiado
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            print("🎨 Theme changed - applying new appearance")
+            UIColor.configureGlobalAppearance()
+        }
+    }
+}
+
+// UIViewControllerRepresentable para usar el observador de tema en SwiftUI
+struct ThemeObserver: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> ThemeObserverViewController {
+        return ThemeObserverViewController()
+    }
+    
+    func updateUIViewController(_ uiViewController: ThemeObserverViewController, context: Context) {
+        // No se necesita actualizar
+    }
+}
+
+// Estructura para inicializar la configuración global
+struct UIKitAppearanceModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
+            .background(ThemeObserver().frame(width: 0, height: 0))
+            .onAppear {
+                // Configuración inicial al aparecer
+                UIColor.configureGlobalAppearance()
+            }
     }
 }
 

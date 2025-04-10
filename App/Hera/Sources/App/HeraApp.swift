@@ -7,10 +7,12 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 @main
 struct HeraApp: App {
     @StateObject var audioManager = AudioManager()
+    @AppStorage("forced_theme") private var forcedTheme = 0 // 0 = System, 1 = Light, 2 = Dark
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -61,13 +63,25 @@ struct HeraApp: App {
         UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor(named: "PrimaryText") ?? .label], for: .normal)
     }
     
+    private func getPreferredColorScheme() -> ColorScheme? {
+        switch forcedTheme {
+        case 1:
+            return .light
+        case 2:
+            return .dark
+        default:
+            return nil // system default
+        }
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .modelContainer(sharedModelContainer)
                 .environmentObject(audioManager)
-                .preferredColorScheme(.none) // Permitir que el sistema elija el tema
+                .preferredColorScheme(getPreferredColorScheme())
                 .tint(AppColors.accent) // Color de acento global
+                .configureGlobalUIKitAppearance() // Aplicar configuración global de UIKit
         }
     }
 }
