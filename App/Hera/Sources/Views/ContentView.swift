@@ -269,13 +269,13 @@ struct ContentView: View {
                     } label: {
                         ZStack {
                             Circle()
-                                .fill(colorScheme == .dark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.8))
+                                .fill(colorScheme == .dark ? Color("CardBackground").opacity(0.8) : Color("DarkBackground").opacity(0.8))
                                 .frame(width: 56, height: 56)
                                 .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
                             
                             Image(systemName: "square.and.arrow.down")
                                 .font(.system(size: 22, weight: .semibold))
-                                .foregroundColor(colorScheme == .dark ? Color(white: 0.9) : Color.white)
+                                .foregroundColor(colorScheme == .dark ? Color.white : Color.white)
                         }
                     }
                     .padding(.trailing, 20)
@@ -295,7 +295,7 @@ struct ContentView: View {
         VStack {
             Image(systemName: "pawprint.fill")
                 .font(.system(size: 28))
-                .foregroundColor(colorScheme == .dark ? Color(white: 0.9) : Color(white: 0.2))
+                .foregroundColor(colorScheme == .dark ? Color.white : Color("DarkBackground"))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
@@ -361,7 +361,7 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
-                .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color.gray.opacity(0.1))
+                .background(colorScheme == .dark ? Color("CardBackground").opacity(0.4) : Color("CardBackground").opacity(0.6))
             }
             
             ScrollView {
@@ -383,9 +383,7 @@ struct ContentView: View {
                             
                             DisplayableRecordingCell(recording: recording)
                                 .contentShape(Rectangle())
-                                .shadow(color: colorScheme == .dark ?
-                                        Color.black.opacity(0.08) :
-                                        Color.black.opacity(0.12),
+                                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.1 : 0.12),
                                         radius: 3, x: 0, y: 2)
                                 .onTapGesture {
                                     if isSelectionMode {
@@ -432,7 +430,7 @@ struct ContentView: View {
                         
                         Image(systemName: "list.bullet")
                             .font(.title3)
-                            .foregroundColor(colorScheme == .dark ? .white : iconColor)
+                            .foregroundColor(colorScheme == .dark ? Color.white : AppColors.adaptiveText)
                             .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
                     }
                     .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
@@ -453,14 +451,20 @@ struct ContentView: View {
                         
                         // Main circle with soft border
                         Circle()
-                            .fill(colorScheme == .dark ? Color.white.opacity(0.2) : Color("OffWhiteBackground").opacity(0.9))
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.5) : Color("OffWhiteBackground").opacity(0.9))
                             .frame(width: 66, height: 66)
                             .overlay(
                                 Circle()
                                     .stroke(colorScheme == .dark ? Color.white : Color("OffWhiteBackground"), lineWidth: colorScheme == .dark ? 1.5 : 0.5)
-                                    .opacity(colorScheme == .dark ? 0.5 : 0.8)
+                                    .opacity(colorScheme == .dark ? 0.8 : 0.8)
                             )
                             .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
+                        
+                        // Añadir icono de micrófono
+                        // Image(systemName: "mic.fill")
+                        //    .font(.system(size: 28))
+                        //    .foregroundColor(colorScheme == .dark ? Color("OffWhiteBackground") : Color("DarkBackground"))
+                        //    .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
                     }
                     .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.2),
                             radius: 12, x: 0, y: 4)
@@ -480,7 +484,7 @@ struct ContentView: View {
                         
                         Image(systemName: "gear")
                             .font(.title3)
-                            .foregroundColor(colorScheme == .dark ? .white : iconColor)
+                            .foregroundColor(colorScheme == .dark ? Color.white : AppColors.adaptiveText)
                             .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
                     }
                     .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
@@ -969,17 +973,17 @@ struct DisplayableRecordingCell: View {
                 HStack {
                     Text(formatRelativeDate(recording.timestamp))
                         .font(.caption)
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .secondary)
-                    Text("•").font(.caption).foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .secondary)
+                        .foregroundColor(AppColors.secondaryText)
+                    Text("•").font(.caption).foregroundColor(AppColors.secondaryText)
                     Text(formatDuration(recording.duration))
                         .font(.caption)
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .secondary)
+                        .foregroundColor(AppColors.secondaryText)
                 }
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                .foregroundColor(AppColors.secondaryText)
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
@@ -1247,7 +1251,7 @@ struct NotesListView: View {
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 8)
-                            .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color.gray.opacity(0.1))
+                            .background(colorScheme == .dark ? Color("CardBackground").opacity(0.4) : Color("CardBackground").opacity(0.6))
                         }
                         
                         ScrollView {
@@ -1267,7 +1271,7 @@ struct NotesListView: View {
                                         
                                         NoteCell(note: note)
                                             .contentShape(Rectangle())
-                                            .shadow(color: Color.black.opacity(0.12),
+                                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.1 : 0.12),
                                                     radius: 3, x: 0, y: 2)
                                             .onTapGesture {
                                                 if isSelectionMode {
@@ -1790,11 +1794,11 @@ struct NoteDetailView: View {
                         // Featured date
                         HStack {
                             Image(systemName: "calendar")
-                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                                .foregroundColor(AppColors.secondaryText)
                             
                             Text("Date: \(formatDate(note.created))")
                                 .font(.subheadline)
-                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                                .foregroundColor(AppColors.secondaryText)
                         }
                     }
                     .padding(.vertical, 10)
@@ -1833,7 +1837,7 @@ struct NoteDetailView: View {
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05))
+                                .fill(colorScheme == .dark ? Color("CardBackground").opacity(0.5) : Color("CardBackground").opacity(0.3))
                         )
                     } else {
                         // Content card with title
@@ -1865,11 +1869,13 @@ struct NoteDetailView: View {
                                 } label: {
                                     Image(systemName: "doc.on.doc")
                                         .font(.system(size: 15))
-                                        .foregroundColor(colorScheme == .dark ? .white : Color.blue)
+                                        .foregroundColor(AppColors.adaptiveTint)
                                         .padding(6)
                                         .background(
                                             Circle()
-                                                .fill(colorScheme == .dark ? Color.blue.opacity(0.2) : Color.blue.opacity(0.1))
+                                                .fill(colorScheme == .dark ? 
+                                                      AppColors.adaptiveTint.opacity(0.2) : 
+                                                      AppColors.adaptiveTint.opacity(0.1))
                                         )
                                 }
                             }
@@ -1881,9 +1887,9 @@ struct NoteDetailView: View {
                                             .font(.caption2)
                                             .fontWeight(.medium)
                                             .padding(5)
-                                            .background(Color.blue.opacity(0.15))
+                                            .background(AppColors.adaptiveTint.opacity(0.15))
                                             .cornerRadius(4)
-                                            .foregroundColor(.primary)
+                                            .foregroundColor(AppColors.adaptiveText)
                                             .offset(x: -40, y: 25)
                                     }
                                 }
@@ -2009,7 +2015,7 @@ struct SearchBar: View {
                 }
             }
         }
-        .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color(.systemGray6))
+        .background(colorScheme == .dark ? Color("CardBackground").opacity(0.6) : Color("CardBackground").opacity(0.8))
         .cornerRadius(10)
     }
 }
@@ -2118,7 +2124,7 @@ struct NoteCell: View {
                 let plainText = cleanMarkdownText(displaySummary.prefix(150))
                 Text(plainText + (displaySummary.count > 150 ? "..." : ""))
                     .font(.caption)
-                    .foregroundColor(colorScheme == .dark ? Color.white.opacity(0.9) : Color.black.opacity(0.8))
+                    .foregroundColor(colorScheme == .dark ? AppColors.primaryText.opacity(0.9) : AppColors.primaryText.opacity(0.8))
                     .lineLimit(3)
                     .padding(.top, 2)
             }

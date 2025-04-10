@@ -117,18 +117,18 @@ struct RecordView: View {
                             .frame(width: 80, height: 80)
                             .overlay(
                                 Circle()
-                                    .stroke(colorScheme == .dark ? Color.white.opacity(0.7) : Color.white.opacity(0.3), lineWidth: 1.5)
+                                    .stroke(colorScheme == .dark ? Color("OffWhiteBackground").opacity(0.7) : Color("OffWhiteBackground").opacity(0.3), lineWidth: 1.5)
                             )
                         
                         // Central element that changes between recording and pause
                         if audioManager.isRecording {
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(colorScheme == .dark ? Color.white : AppColors.primaryText)
+                                .fill(colorScheme == .dark ? Color("OffWhiteBackground") : AppColors.primaryText)
                                 .frame(width: 30, height: 30)
                                 .transition(.scale(scale: 0.7).combined(with: .opacity))
                         } else {
                             Circle()
-                                .fill(colorScheme == .dark ? Color.white : AppColors.primaryText)
+                                .fill(colorScheme == .dark ? Color("OffWhiteBackground") : AppColors.primaryText)
                                 .frame(width: 60, height: 60)
                                 .transition(.scale(scale: 0.7).combined(with: .opacity))
                         }

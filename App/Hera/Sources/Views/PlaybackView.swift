@@ -797,7 +797,7 @@ struct PlaybackView: View {
                                         Text(event.date)
                                             .font(.caption)
                                             .foregroundColor(colorScheme == .dark ? 
-                                                           Color.white.opacity(0.7) : 
+                                                           Color("OffWhiteBackground").opacity(0.7) : 
                                                            Color.secondary)
                                     }
                                     Spacer()
@@ -829,7 +829,7 @@ struct PlaybackView: View {
                             Text("No events found in this recording")
                                 .font(.subheadline)
                                 .foregroundColor(colorScheme == .dark ? 
-                                               Color.white.opacity(0.7) : 
+                                               Color("OffWhiteBackground").opacity(0.7) : 
                                                Color.secondary)
                                 .padding()
                         }
@@ -880,7 +880,7 @@ struct PlaybackView: View {
                                         Text(reminder.date)
                                             .font(.caption)
                                             .foregroundColor(colorScheme == .dark ? 
-                                                           Color.white.opacity(0.7) : 
+                                                           Color("OffWhiteBackground").opacity(0.7) : 
                                                            Color.secondary)
                                     }
                                     Spacer()
@@ -913,7 +913,7 @@ struct PlaybackView: View {
                         } else if showReminders {
                             Text("No reminders found in this recording")
                                 .foregroundColor(colorScheme == .dark ? 
-                                               Color.white.opacity(0.7) : 
+                                               Color("OffWhiteBackground").opacity(0.7) : 
                                                Color.secondary)
                                 .padding()
                         }
@@ -986,7 +986,7 @@ struct PlaybackView: View {
                         .frame(width: 68, height: 68)
                         .overlay(
                             Circle()
-                                .stroke(colorScheme == .dark ? Color.white.opacity(0.7) : Color.white.opacity(0.3), lineWidth: 2.5)
+                                .stroke(colorScheme == .dark ? Color("OffWhiteBackground").opacity(0.7) : Color("OffWhiteBackground").opacity(0.3), lineWidth: 2.5)
                         )
                         .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 0)
                         .overlay(
@@ -1016,14 +1016,14 @@ struct PlaybackView: View {
                 HStack {
                     Text(formatTime(currentTime))
                         .font(.caption2)
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                        .foregroundColor(colorScheme == .dark ? Color("OffWhiteBackground").opacity(0.7) : .secondary)
                         .monospacedDigit()
                     
                     Spacer()
                     
                     Text(formatTime(duration))
                         .font(.caption2)
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
+                        .foregroundColor(colorScheme == .dark ? Color("OffWhiteBackground").opacity(0.7) : .secondary)
                         .monospacedDigit()
                 }
             }
@@ -2122,7 +2122,7 @@ struct NoteDetailFullScreenView: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
-                        .background(colorScheme == .dark ? Color.black : Color.white)
+                        .background(colorScheme == .dark ? Color.black : Color("OffWhiteBackground"))
                         .cornerRadius(8)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
