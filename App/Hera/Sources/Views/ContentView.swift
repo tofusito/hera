@@ -292,12 +292,30 @@ struct ContentView: View {
     // MARK: - Componentes de UI
     @ViewBuilder
     private func titleBarView() -> some View {
-        VStack {
+        ZStack {
+            // Paw icon centered
             Image(systemName: "pawprint.fill")
                 .font(.system(size: 28))
                 .foregroundColor(colorScheme == .dark ? Color.white : Color("DarkBackground"))
+
+            // Menu aligned to right
+            HStack {
+                Spacer()
+                Menu {
+                    Button(isSelectionMode ? "Cancel" : "Select") {
+                        isSelectionMode.toggle()
+                        if !isSelectionMode { selectedRecordings.removeAll() }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.title2)
+                        .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
+                        .padding(.trailing, 16)
+                }
+            }
         }
         .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
         .padding(.vertical, 10)
     }
     
@@ -322,39 +340,14 @@ struct ContentView: View {
     @ViewBuilder
     private func recordingListView() -> some View {
         VStack {
-            // Barra superior con search bar y botón de selección
-            HStack {
-                // Search bar
-                SearchBar(text: $searchText, placeholder: "Search recordings")
-                    .padding(.leading)
-                
-                // Botón de selección
-                Button(action: {
-                    isSelectionMode.toggle()
-                    if !isSelectionMode {
-                        selectedRecordings.removeAll()
-                    }
-                }) {
-                    Text(isSelectionMode ? "Cancel" : "Select")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.adaptiveTint)
-                }
-                .padding(.trailing)
-            }
-            .padding(.top, 8)
-            
-            // Si está en modo selección y hay elementos seleccionados, mostrar barra de acciones
+            // Selected items action bar
             if isSelectionMode && !selectedRecordings.isEmpty {
                 HStack {
                     Text("\(selectedRecordings.count) \(selectedRecordings.count == 1 ? "recording" : "recordings")")
                         .font(.subheadline)
                         .foregroundColor(AppColors.adaptiveText)
-                    
                     Spacer()
-                    
-                    Button(action: {
-                        deleteSelectedRecordings()
-                    }) {
+                    Button(action: deleteSelectedRecordings) {
                         Label("Delete", systemImage: "trash")
                             .foregroundColor(.red)
                     }
@@ -363,54 +356,45 @@ struct ContentView: View {
                 .padding(.vertical, 8)
                 .background(colorScheme == .dark ? Color("CardBackground").opacity(0.4) : Color("CardBackground").opacity(0.6))
             }
-            
+
+            // Recordings list
             ScrollView {
                 LazyVStack(spacing: 12) {
                     let recordingsToShow = searchText.isEmpty ? displayableRecordings : filteredRecordings
-                    
                     ForEach(recordingsToShow) { recording in
                         HStack {
                             if isSelectionMode {
-                                Button(action: {
-                                    toggleSelection(recording.id)
-                                }) {
+                                Button(action: { toggleSelection(recording.id) }) {
                                     Image(systemName: selectedRecordings.contains(recording.id) ? "checkmark.circle.fill" : "circle")
                                         .foregroundColor(selectedRecordings.contains(recording.id) ? AppColors.adaptiveTint : .gray)
                                         .font(.system(size: 20))
                                         .padding(.leading, 4)
                                 }
                             }
-                            
                             DisplayableRecordingCell(recording: recording)
                                 .contentShape(Rectangle())
-                                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.1 : 0.12),
-                                        radius: 3, x: 0, y: 2)
+                                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.1 : 0.12), radius: 3, x: 0, y: 2)
                                 .onTapGesture {
-                                    if isSelectionMode {
-                                        toggleSelection(recording.id)
-                                    } else {
-                                        handleRecordingTap(recording)
-                                    }
+                                    if isSelectionMode { toggleSelection(recording.id) }
+                                    else { handleRecordingTap(recording) }
                                 }
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 2)
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                deleteRecording(recording)
-                            } label: {
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) { deleteRecording(recording) } label: {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
                     }
                 }
                 .padding(.vertical)
+                .scrollIndicators(.hidden)
             }
-            .scrollIndicators(.hidden)
         }
-        .onChange(of: searchText) { _, _ in
-            filterRecordings()
-        }
+        .searchable(text: $searchText, prompt: "Search recordings")
+        .tint(AppColors.adaptiveTint)
+        .onChange(of: searchText) { _, _ in filterRecordings() }
     }
     
     @ViewBuilder
@@ -1191,21 +1175,22 @@ struct NotesListView: View {
         NavigationStack {
             ZStack {
                 Color("Background").ignoresSafeArea()
-                
                 VStack {
+                    // Loading state
                     if isLoading {
                         ProgressView("Loading notes...")
                             .padding()
                     } else if analyzedNotes.isEmpty {
+                        // Empty state when no notes
                         VStack(spacing: 20) {
                             Image(systemName: "note.text")
                                 .font(.system(size: 50))
                                 .foregroundColor(.gray)
-                            
+
                             Text("No notes")
                                 .font(.title2)
                                 .foregroundColor(.gray)
-                            
+
                             Text("Notes will appear here after processing your recordings")
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
@@ -1214,37 +1199,14 @@ struct NotesListView: View {
                         }
                         .padding()
                     } else {
-                        // Barra superior con search bar y botón de selección
-                        HStack {
-                            SearchBar(text: $searchText, placeholder: "Search notes")
-                                .padding(.leading)
-                            
-                            Button(action: {
-                                isSelectionMode.toggle()
-                                if !isSelectionMode {
-                                    selectedNotes.removeAll()
-                                }
-                            }) {
-                                Text(isSelectionMode ? "Cancel" : "Select")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(AppColors.adaptiveTint)
-                            }
-                            .padding(.trailing)
-                        }
-                        .padding(.top, 8)
-                        
-                        // Si está en modo selección y hay elementos seleccionados, mostrar barra de acciones
+                        // Action bar for selected notes
                         if isSelectionMode && !selectedNotes.isEmpty {
                             HStack {
                                 Text("\(selectedNotes.count) \(selectedNotes.count == 1 ? "note" : "notes")")
                                     .font(.subheadline)
                                     .foregroundColor(AppColors.adaptiveText)
-                                
                                 Spacer()
-                                
-                                Button(action: {
-                                    deleteSelectedNotes()
-                                }) {
+                                Button(action: deleteSelectedNotes) {
                                     Label("Delete", systemImage: "trash")
                                         .foregroundColor(.red)
                                 }
@@ -1253,90 +1215,64 @@ struct NotesListView: View {
                             .padding(.vertical, 8)
                             .background(colorScheme == .dark ? Color("CardBackground").opacity(0.4) : Color("CardBackground").opacity(0.6))
                         }
-                        
+
+                        // Notes list
+                        // Lista de notas con NavigationLink para detalle
                         ScrollView {
                             LazyVStack(spacing: 12) {
                                 ForEach(analyzedNotes) { note in
-                                    HStack {
-                                        if isSelectionMode {
-                                            Button(action: {
-                                                toggleSelection(note.id)
-                                            }) {
-                                                Image(systemName: selectedNotes.contains(note.id) ? "checkmark.circle.fill" : "circle")
-                                                    .foregroundColor(selectedNotes.contains(note.id) ? AppColors.adaptiveTint : .gray)
-                                                    .font(.system(size: 20))
-                                                    .padding(.leading, 4)
-                                            }
-                                        }
-                                        
-                                        NoteCell(note: note)
-                                            .contentShape(Rectangle())
-                                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.1 : 0.12),
-                                                    radius: 3, x: 0, y: 2)
-                                            .onTapGesture {
-                                                if isSelectionMode {
-                                                    toggleSelection(note.id)
-                                                } else {
-                                                    print("🔍 Note selected: \(note.title)")
-                                                    selectedNote = note
+                                    NavigationLink(destination: NoteDetailView(note: note)
+                                                    .navigationBarTitleDisplayMode(.inline)) {
+                                        HStack {
+                                            if isSelectionMode {
+                                                Button(action: { toggleSelection(note.id) }) {
+                                                    Image(systemName: selectedNotes.contains(note.id) ? "checkmark.circle.fill" : "circle")
+                                                        .foregroundColor(selectedNotes.contains(note.id) ? AppColors.adaptiveTint : .gray)
+                                                        .font(.system(size: 20))
+                                                        .padding(.leading, 4)
                                                 }
                                             }
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 2)
-                                    .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) {
-                                            deleteNote(note)
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
+                                            NoteCell(note: note)
+                                                .contentShape(Rectangle())
+                                                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.1 : 0.12), radius: 3, x: 0, y: 2)
+                                        }
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 2)
+                                        .swipeActions(edge: .trailing) {
+                                            Button(role: .destructive) { deleteNote(note) } label: {
+                                                Label("Delete", systemImage: "trash")
+                                            }
                                         }
                                     }
                                 }
                             }
                             .padding(.vertical)
+                            .scrollIndicators(.hidden)
                         }
-                        .searchable(text: $searchText, prompt: "Search notes")
-                        .scrollIndicators(.hidden)
                     }
                 }
-            }
-            .navigationTitle("My Notes")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Close") {
-                        dismiss()
-                    }
-                    .foregroundColor(AppColors.adaptiveText)
-                }
-            }
-            .onAppear {
-                loadNotes()
-            }
-            .onChange(of: searchText) { _, _ in
-                // Filter notes when search text changes
-                filterNotes()
-            }
-            .fullScreenCover(item: $selectedNote) { note in
-                NavigationStack {
-                    NoteDetailView(note: note)
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarLeading) {
-                                Button("Close") {
-                                    selectedNote = nil
-                                }
-                            }
-                            ToolbarItem(placement: .principal) {
-                                Text("Note")
-                                    .font(.headline)
-                            }
-                        }
-                }
-                .accentColor(AppColors.adaptiveTint)
             }
         }
-        .tint(AppColors.adaptiveTint)
+        .searchable(text: $searchText, prompt: "Search notes")
+        .navigationTitle("My Notes")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Menu {
+                    Button(isSelectionMode ? "Cancel" : "Select") {
+                        isSelectionMode.toggle()
+                        if !isSelectionMode { selectedNotes.removeAll() }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
+                }
+                Button("Close") { dismiss() }
+                    .foregroundColor(AppColors.adaptiveText)
+            }
+        }
+        .onAppear { loadNotes() }
+        .onChange(of: searchText) { _, _ in filterNotes() }
     }
     
     // Function to toggle the selection of a note
