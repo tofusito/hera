@@ -12,22 +12,11 @@ class CalendarManager {
     
     // Solicitar permisos de acceso al calendario
     func requestAccess(completion: @escaping (Bool) -> Void) {
-        if #available(iOS 17.0, *) {
-            eventStore.requestFullAccessToEvents { granted, error in
-                DispatchQueue.main.async {
-                    completion(granted)
-                    if let error = error {
-                        print("❌ Error requesting access to calendar: \(error)")
-                    }
-                }
-            }
-        } else {
-            eventStore.requestAccess(to: .event) { granted, error in
-                DispatchQueue.main.async {
-                    completion(granted)
-                    if let error = error {
-                        print("❌ Error requesting access to calendar: \(error)")
-                    }
+        eventStore.requestFullAccessToEvents { granted, error in
+            DispatchQueue.main.async {
+                completion(granted)
+                if let error = error {
+                    print("❌ Error requesting access to calendar: \(error)")
                 }
             }
         }
@@ -35,22 +24,11 @@ class CalendarManager {
     
     // Solicitar permisos de acceso a recordatorios
     func requestRemindersAccess(completion: @escaping (Bool) -> Void) {
-        if #available(iOS 17.0, *) {
-            eventStore.requestFullAccessToReminders { granted, error in
-                DispatchQueue.main.async {
-                    completion(granted)
-                    if let error = error {
-                        print("❌ Error requesting access to reminders: \(error)")
-                    }
-                }
-            }
-        } else {
-            eventStore.requestAccess(to: .reminder) { granted, error in
-                DispatchQueue.main.async {
-                    completion(granted)
-                    if let error = error {
-                        print("❌ Error requesting access to reminders: \(error)")
-                    }
+        eventStore.requestFullAccessToReminders { granted, error in
+            DispatchQueue.main.async {
+                completion(granted)
+                if let error = error {
+                    print("❌ Error requesting access to reminders: \(error)")
                 }
             }
         }

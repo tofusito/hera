@@ -73,7 +73,7 @@ class RecordingsViewModel: ObservableObject {
                     // Update or clear transcription based on filesystem
                     let transcriptionFileURL = folderURL.appendingPathComponent("transcription.txt")
                     if fileManager.fileExists(atPath: transcriptionFileURL.path) {
-                        let transcriptionText = (try? String(contentsOf: transcriptionFileURL)) ?? ""
+                        let transcriptionText = (try? String(contentsOf: transcriptionFileURL, encoding: .utf8)) ?? ""
                         if existingData.transcription != transcriptionText {
                             existingData.transcription = transcriptionText
                             modified = true

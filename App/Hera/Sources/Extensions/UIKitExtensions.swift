@@ -59,6 +59,7 @@ class ThemeObserverViewController: UIViewController {
         UIColor.configureGlobalAppearance()
     }
     
+    @available(iOS, deprecated: 17.0, message: "Use UITraitChangeObservable protocol for trait updates")
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         

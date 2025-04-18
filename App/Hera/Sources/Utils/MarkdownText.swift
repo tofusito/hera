@@ -33,20 +33,8 @@ struct MarkdownText: View {
     }
     
     var body: some View {
-        if #available(iOS 16.0, *) {
-            // Use Swift's latest built-in Markdown support for iOS 16+
-            renderMarkdownWithTextMarkdown()
-        } else if #available(iOS 15.0, *) {
-            // iOS 15 AttributedString API
-            renderMarkdownWithAttributedString()
-        } else {
-            // iOS 14: Fallback to plain text or custom renderer
-            if containsMarkdown(processedText) {
-                MarkdownTextCustomRenderer(text: processedText)
-            } else {
-                plainText
-            }
-        }
+        // Always use native Markdown renderer (iOS 16+ minimum)
+        renderMarkdownWithTextMarkdown()
     }
     
     @available(iOS 16.0, *)
@@ -55,29 +43,6 @@ struct MarkdownText: View {
             .font(font)
             .lineSpacing(lineSpacing)
             .textSelection(.enabled)
-    }
-    
-    @available(iOS 15.0, *)
-    private func renderMarkdownWithAttributedString() -> some View {
-        let options = AttributedString.MarkdownParsingOptions(
-            allowsExtendedAttributes: true,
-            interpretedSyntax: .full,  // Interpret all Markdown syntax
-            failurePolicy: .returnPartiallyParsedIfPossible  // Return what can be parsed
-        )
-        
-        do {
-            let attributedString = try AttributedString(markdown: processedText, options: options)
-            
-            return Text(attributedString)
-                .textSelection(.enabled)
-                .lineSpacing(lineSpacing)
-                .eraseToAnyView()
-        } catch {
-            print("Error rendering Markdown: \(error)")
-            // If it fails, use our simpler custom implementation
-            return MarkdownTextCustomRenderer(text: processedText)
-                .eraseToAnyView()
-        }
     }
     
     private var plainText: some View {
