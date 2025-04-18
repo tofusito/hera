@@ -3,29 +3,6 @@ import AVFoundation
 import SwiftData
 import EventKit // Importar EventKit para acceso al calendario
 
-// Structure to decode the JSON analysis response
-struct AnalysisResult: Codable {
-    let summary: String
-    let events: [Event]?
-    let reminders: [Reminder]?
-    let suggestedTitle: String?
-    
-    struct Event: Codable, Identifiable {
-        let name: String
-        let date: String
-        let time: String?
-        
-        var id: String { name + date + (time ?? "") }
-    }
-    
-    struct Reminder: Codable, Identifiable {
-        let name: String
-        let date: String
-        let time: String?
-        
-        var id: String { name + date + (time ?? "") }
-    }
-}
 
 // Gestor de acceso al calendario
 class CalendarManager {
